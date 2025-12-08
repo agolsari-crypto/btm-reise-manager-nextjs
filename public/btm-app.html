@@ -1674,7 +1674,7 @@
                                 keywords: 'medical certificate, travel, controlled substance'
                             });
                             
-                            doc.save(`Attest_English_${formData.patName || 'Patient'}.pdf`);
+                            // Attest PDF wird später zusammen mit BTM-Formular per Email gesendet
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
                             const btmDoc = new jsPDF();
@@ -2320,7 +2320,56 @@
                                 btmDoc.line(contentX, y, pageWidth - 20, y); btmDoc.text('Address', contentX, y + 3); y += 15;
                                 btmDoc.line(contentX, y, pageWidth - 20, y); btmDoc.text('Seal / Signature', contentX, y + 3);
                             }
-                            btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${formData.patName || 'Patient'}.pdf`);
+                            
+                            // PDFs als Base64 extrahieren für Email-Versand
+                            const attestPdfBase64 = doc.output('datauristring').split(',')[1];
+                            const btmPdfBase64 = btmDoc.output('datauristring').split(',')[1];
+                            
+                            // Email mit PDFs senden
+                            const patientEmail = currentUser?.email;
+                            if (patientEmail) {
+                                console.log('📧 Sende Dokumente per Email an:', patientEmail);
+                                try {
+                                    const emailResponse = await fetch('/api/send-documents', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            patientEmail: patientEmail,
+                                            patientName: `${formData.patFirstName} ${formData.patName}`.trim(),
+                                            doctorName: doctor.name,
+                                            btmPdfBase64: btmPdfBase64,
+                                            attestPdfBase64: attestPdfBase64,
+                                            travelStartDate: formData.travelStartDate,
+                                            travelEndDate: endDate,
+                                            destination: formData.destination
+                                        })
+                                    });
+                                    
+                                    const emailResult = await emailResponse.json();
+                                    
+                                    if (emailResult.success) {
+                                        console.log('✅ Email erfolgreich gesendet:', emailResult.message);
+                                        alert(`✅ Ihre Dokumente wurden erfolgreich an ${patientEmail} gesendet!`);
+                                    } else {
+                                        console.error('❌ Email-Fehler:', emailResult.error);
+                                        // Fallback: PDFs trotzdem herunterladen
+                                        doc.save(`Attest_English_${formData.patName || 'Patient'}.pdf`);
+                                        btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${formData.patName || 'Patient'}.pdf`);
+                                        alert(`Email konnte nicht gesendet werden. Die PDFs wurden stattdessen heruntergeladen.`);
+                                    }
+                                } catch (emailErr) {
+                                    console.error('Email-Versand fehlgeschlagen:', emailErr);
+                                    // Fallback: PDFs herunterladen
+                                    doc.save(`Attest_English_${formData.patName || 'Patient'}.pdf`);
+                                    btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${formData.patName || 'Patient'}.pdf`);
+                                    alert(`Email konnte nicht gesendet werden. Die PDFs wurden stattdessen heruntergeladen.`);
+                                }
+                            } else {
+                                // Keine Email vorhanden - direkt herunterladen
+                                console.log('📥 Keine Email - PDFs werden heruntergeladen');
+                                doc.save(`Attest_English_${formData.patName || 'Patient'}.pdf`);
+                                btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${formData.patName || 'Patient'}.pdf`);
+                            }
                         }
                         
                         // E-Mail-Benachrichtigungen simulieren
