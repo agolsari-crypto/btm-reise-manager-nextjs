@@ -438,7 +438,7 @@
         };
 
         // Gesundheitsamt Suche nach PLZ (via RKI PLZ-Tool Scraping Alternative)
-        const HealthAuthoritySearch = ({ onSelect, currentAuthority }) => {
+        const HealthAuthoritySearch = ({ onSelect, currentAuthority, isSchengen = true }) => {
             const [plz, setPlz] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             const [searchResult, setSearchResult] = useState(null);
@@ -730,7 +730,9 @@
                         </div>
                     ) : (
                         <p className="text-xs text-amber-700 mb-4">
-                            Für Schengen-Reisen muss das Formular vom Gesundheitsamt beglaubigt werden.
+                            {isSchengen 
+                                ? 'Für Schengen-Reisen muss das Formular vom Gesundheitsamt beglaubigt werden.'
+                                : 'Für Nicht-Schengen-Reisen kann das Gesundheitsamt bei Rückfragen kontaktiert werden.'}
                         </p>
                     )}
                     
@@ -2999,28 +3001,27 @@
                                     </div>
                                 )}
                                 
-                                {/* Gesundheitsamt-Suche für Schengen-Reisen */}
-                                {formData.countryType === 'schengen' && (
-                                    <div className="mt-6 animate-slide-down">
-                                        <HealthAuthoritySearch 
-                                            onSelect={(authority) => setFormData(prev => ({ 
-                                                ...prev, 
-                                                healthAuthorityName: authority.name || '',
-                                                healthAuthorityAddress: authority.address || '',
-                                                healthAuthorityPhone: authority.phone || '',
-                                                healthAuthorityEmail: authority.email || '',
-                                                healthAuthorityFax: authority.fax || ''
-                                            }))}
-                                            currentAuthority={{
-                                                name: formData.healthAuthorityName,
-                                                address: formData.healthAuthorityAddress,
-                                                phone: formData.healthAuthorityPhone,
-                                                email: formData.healthAuthorityEmail,
-                                                fax: formData.healthAuthorityFax
-                                            }}
-                                        />
-                                    </div>
-                                )}
+                                {/* Gesundheitsamt-Suche für alle Reisen */}
+                                <div className="mt-6 animate-slide-down">
+                                    <HealthAuthoritySearch 
+                                        onSelect={(authority) => setFormData(prev => ({ 
+                                            ...prev, 
+                                            healthAuthorityName: authority.name || '',
+                                            healthAuthorityAddress: authority.address || '',
+                                            healthAuthorityPhone: authority.phone || '',
+                                            healthAuthorityEmail: authority.email || '',
+                                            healthAuthorityFax: authority.fax || ''
+                                        }))}
+                                        currentAuthority={{
+                                            name: formData.healthAuthorityName,
+                                            address: formData.healthAuthorityAddress,
+                                            phone: formData.healthAuthorityPhone,
+                                            email: formData.healthAuthorityEmail,
+                                            fax: formData.healthAuthorityFax
+                                        }}
+                                        isSchengen={formData.countryType === 'schengen'}
+                                    />
+                                </div>
                             </section>
 
                             {/* Section 2: Patientendaten */}
