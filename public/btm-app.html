@@ -420,7 +420,8 @@
         ];
 
         const PRICES = { bundle: 11.50 };
-        const ADMIN_PASSWORD = "nevpaz";
+        // Admin-Passwort wird serverseitig geprüft (nicht mehr im Client-Code!)
+        const ADMIN_API_ENDPOINT = '/api/admin-login';
 
         // Hilfsfunktionen
         const formatDate = (dateStr, locale = 'de-DE') => {
@@ -1354,7 +1355,62 @@
             };
 
             const handlePlzSearch = () => { if (plzSearch.length >= 4) window.open(`https://tools.rki.de/plztool/?q=${plzSearch}`, '_blank'); };
-            const handleLogin = () => { if (passwordInput === ADMIN_PASSWORD) { setIsAdminMode(true); setShowLoginModal(false); setPasswordInput(''); } else { alert("Falsches Passwort"); } };
+            const handleLogin = async () => { 
+                try {
+                    const response = await fetch(ADMIN_API_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'login', password: passwordInput })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.token) {
+                        localStorage.setItem('nevpaz_admin_token', result.token);
+                        setIsAdminMode(true); 
+                        setShowLoginModal(false); 
+                        setPasswordInput('');
+                    } else {
+                        alert(result.error || 'Falsches Passwort');
+                    }
+                } catch (error) {
+                    alert('Login fehlgeschlagen. Bitte versuchen Sie es erneut.');
+                }
+            };
+            
+            const handleLogout = async () => {
+                const token = localStorage.getItem('nevpaz_admin_token');
+                if (token) {
+                    try {
+                        await fetch(ADMIN_API_ENDPOINT, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'logout', token })
+                        });
+                    } catch (e) {}
+                    localStorage.removeItem('nevpaz_admin_token');
+                }
+                setIsAdminMode(false);
+            };
+            
+            // Auto-Login wenn Token vorhanden
+            useEffect(() => {
+                const token = localStorage.getItem('nevpaz_admin_token');
+                if (token) {
+                    fetch(ADMIN_API_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'verify', token })
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+                        if (result.valid) {
+                            setIsAdminMode(true);
+                        } else {
+                            localStorage.removeItem('nevpaz_admin_token');
+                        }
+                    })
+                    .catch(() => localStorage.removeItem('nevpaz_admin_token'));
+                }
+            }, []);
             
             // Patienten-Login Handler
             const handlePatientLogin = () => {
@@ -2957,7 +3013,7 @@
                                     )
                                 )}
                                 
-                                <button onClick={() => isAdminMode ? setIsAdminMode(false) : setShowLoginModal(true)} className={`text-xs p-2 sm:px-4 sm:py-2 rounded-full border-2 transition-all flex items-center gap-2 font-medium touch-target ${isAdminMode ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-white hover:border-slate-300'}`}>
+                                <button onClick={() => isAdminMode ? handleLogout() : setShowLoginModal(true)} className={`text-xs p-2 sm:px-4 sm:py-2 rounded-full border-2 transition-all flex items-center gap-2 font-medium touch-target ${isAdminMode ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-white hover:border-slate-300'}`}>
                                     {isAdminMode ? <Icons.LogOut className="h-4 w-4" /> : <Icons.Settings className="h-4 w-4" />}
                                     <span className="hidden sm:inline">{isAdminMode ? 'Logout' : 'Praxis Login'}</span>
                                 </button>
