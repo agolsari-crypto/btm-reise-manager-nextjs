@@ -1339,10 +1339,11 @@
                                             sessionStorage.setItem('payment_verified', 'true');
                                             setSuccess(true);
                                             
-                                            // PDF DIREKT generieren nach kurzem Delay für State-Update
+                                            // PDF DIREKT generieren mit gespeicherten Daten
                                             setTimeout(() => {
                                                 console.log('📄 Generating PDF after verified payment...');
-                                                generatePDF('bundle');
+                                                console.log('📋 Using saved form data:', savedFormData);
+                                                generatePDF('bundle', savedFormData);
                                             }, 800);
                                         } else {
                                             console.error('❌ Zahlung nicht verifiziert:', result.error);
@@ -1520,9 +1521,12 @@
             };
 
             // PDF Generation
-            const generatePDF = (type) => {
+            const generatePDF = (type, overrideFormData = null) => {
+                // Verwende übergebene Daten oder State
+                const activeFormData = overrideFormData || formData;
+                
                 if (!window.jspdf) { alert("PDF-Bibliothek wird noch geladen."); return; }
-                const doctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
+                const doctor = DOCTORS.find(d => d.id === activeFormData.selectedDoctorId);
                 if (!doctor) { alert("Bitte wählen Sie einen Arzt aus."); return; }
                 const docAssets = doctorAssets[doctor.id] || { signature: null, stamp: null, letterhead: null };
                 setLoading(true);
@@ -1563,6 +1567,9 @@
                 };
 
                 setTimeout(async () => {
+                    // Verwende activeFormData für alle Referenzen in dieser Funktion
+                    const formData = activeFormData;
+                    
                     try {
                         const { jsPDF } = window.jspdf;
                         
