@@ -274,6 +274,11 @@
                     <rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>
                 </svg>
             ),
+            Stamp: ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 22h14"/><path d="M19.27 13.73A2.5 2.5 0 0 0 17.5 13h-11A2.5 2.5 0 0 0 4 15.5V17a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1.5c0-.66-.26-1.3-.73-1.77z"/><path d="M14 13V8.5C14 7 15 7 15 5a3 3 0 0 0-6 0c0 2 1 2 1 3.5V13"/>
+                </svg>
+            ),
             FileText: ({ className }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/>
@@ -1845,15 +1850,20 @@
                                 doc.setLineWidth(0.3);
                                 doc.roundedRect(x + 4, y + 5, width - 8, height - 14, 1.5, 1.5, 'S');
                                 
-                                if (docAssets.stamp && docAssets.signature) {
-                                    tryAddImage(docAssets.stamp, x + 6, y + 6, 22, 14);
-                                    tryAddImage(docAssets.signature, x + 30, y + 7, 22, 11);
-                                } else if (docAssets.stamp) {
-                                    tryAddImage(docAssets.stamp, x + (width - 26) / 2, y + 6, 26, 14);
-                                } else if (docAssets.signature) {
-                                    tryAddImage(docAssets.signature, x + (width - 28) / 2, y + 6, 28, 11);
+                                if (docAssets.stamp) {
+                                    // Stempel mit Unterschrift (kombiniertes Bild) - zentriert
+                                    tryAddImage(docAssets.stamp, x + 6, y + 5, 46, 16);
+                                    
+                                    // Datum und Verifizierungscode dezent unten rechts im Bildbereich
+                                    doc.setFont('helvetica', 'normal');
+                                    doc.setFontSize(4.5);
+                                    doc.setTextColor(...goldLight);
+                                    doc.text(issuedDate, x + width - 6, y + 18, { align: 'right' });
+                                    doc.setFontSize(3.5);
+                                    doc.setTextColor(...silver);
+                                    doc.text(securityHash, x + width - 6, y + 21, { align: 'right' });
                                 } else {
-                                    // Platzhalter wenn keine Bilder: Arzt-Initialen
+                                    // Platzhalter wenn kein Bild: Arzt-Initialen
                                     doc.setFont('helvetica', 'bold');
                                     doc.setFontSize(16);
                                     doc.setTextColor(...navy);
@@ -2424,16 +2434,20 @@
                                     btmDoc.setLineWidth(0.3);
                                     btmDoc.roundedRect(x + 3, y + 5, width - 6, height - 13, 1.5, 1.5, 'S');
                                     
-                                    // Stempel und Unterschrift
-                                    if (docAssets.stamp && docAssets.signature) {
-                                        tryAddImageBtm(docAssets.stamp, x + 5, y + 6, 22, 14);
-                                        tryAddImageBtm(docAssets.signature, x + 28, y + 7, 22, 11);
-                                    } else if (docAssets.stamp) {
-                                        tryAddImageBtm(docAssets.stamp, x + (width - 26) / 2, y + 6, 26, 14);
-                                    } else if (docAssets.signature) {
-                                        tryAddImageBtm(docAssets.signature, x + (width - 28) / 2, y + 6, 28, 11);
+                                    // Stempel mit Unterschrift (kombiniertes Bild)
+                                    if (docAssets.stamp) {
+                                        tryAddImageBtm(docAssets.stamp, x + 5, y + 5, 42, 16);
+                                        
+                                        // Datum und Verifizierungscode dezent unten rechts im Bildbereich
+                                        btmDoc.setFont('helvetica', 'normal');
+                                        btmDoc.setFontSize(4.5);
+                                        btmDoc.setTextColor(...goldLight);
+                                        btmDoc.text(btmIssuedDate, x + width - 5, y + 17, { align: 'right' });
+                                        btmDoc.setFontSize(3.5);
+                                        btmDoc.setTextColor(...silver);
+                                        btmDoc.text(btmSecurityHash, x + width - 5, y + 20, { align: 'right' });
                                     } else {
-                                        // Platzhalter wenn keine Bilder: Arzt-Initialen
+                                        // Platzhalter wenn kein Bild: Arzt-Initialen
                                         btmDoc.setFont('helvetica', 'bold');
                                         btmDoc.setFontSize(14);
                                         btmDoc.setTextColor(...navy);
@@ -3596,11 +3610,13 @@
                                                     </select>
                                                     <Icons.ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400 pointer-events-none" />
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <button onClick={() => stampInputRef.current?.click()} className={`text-xs p-2.5 rounded-lg border text-center font-medium transition-all ${doctorAssets[setupDoctorId]?.stamp ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-white'}`}>{doctorAssets[setupDoctorId]?.stamp ? '✓ Stempel' : 'Stempel'}</button>
+                                                <div className="space-y-2">
+                                                    <button onClick={() => stampInputRef.current?.click()} className={`w-full text-xs p-3 rounded-lg border text-center font-medium transition-all flex items-center justify-center gap-2 ${doctorAssets[setupDoctorId]?.stamp ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-white'}`}>
+                                                        <Icons.Stamp className="h-4 w-4" />
+                                                        {doctorAssets[setupDoctorId]?.stamp ? '✓ Stempel & Unterschrift hochgeladen' : 'Stempel & Unterschrift hochladen'}
+                                                    </button>
                                                     <input type="file" ref={stampInputRef} onChange={(e) => handleDoctorAssetUpload(e, 'stamp')} accept="image/*" className="hidden" />
-                                                    <button onClick={() => sigInputRef.current?.click()} className={`text-xs p-2.5 rounded-lg border text-center font-medium transition-all ${doctorAssets[setupDoctorId]?.signature ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-white'}`}>{doctorAssets[setupDoctorId]?.signature ? '✓ Signatur' : 'Signatur'}</button>
-                                                    <input type="file" ref={sigInputRef} onChange={(e) => handleDoctorAssetUpload(e, 'signature')} accept="image/*" className="hidden" />
+                                                    <p className="text-[10px] text-slate-400 text-center">Bild mit Stempel und Unterschrift kombiniert</p>
                                                 </div>
                                             </div>
                                         </div>
