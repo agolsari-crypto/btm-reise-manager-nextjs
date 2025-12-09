@@ -2975,7 +2975,7 @@
                                     </div>
                                     {/* Progress Bar */}
                                     <div className="mt-4 flex gap-1">
-                                        {[0,1,2,3,4].map(i => (
+                                        {[0,1,2,3,4,5,6].map(i => (
                                             <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i <= tutorialStep ? 'bg-white' : 'bg-white/30'}`} />
                                         ))}
                                     </div>
@@ -2990,12 +2990,12 @@
                                             </div>
                                             <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">1. Anmelden</h3>
                                             <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
-                                                Klicken Sie oben rechts auf <strong className="text-emerald-600">"Anmelden"</strong> und geben Sie Ihren Namen und Ihre E-Mail-Adresse ein.
+                                                Klicken Sie oben rechts auf <strong className="text-sky-600">"Anmelden"</strong> und geben Sie Ihren Namen und Ihre E-Mail-Adresse ein.
                                             </p>
-                                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
-                                                <div className="flex items-center gap-3 text-sm text-slate-500">
+                                            <div className="bg-sky-50 rounded-2xl p-4 border border-sky-200">
+                                                <div className="flex items-center gap-3 text-sm text-sky-700">
                                                     <Icons.Mail className="h-5 w-5 text-sky-500" />
-                                                    <span>Ihre Dokumente werden automatisch an diese E-Mail gesendet</span>
+                                                    <span>Ihre Dokumente werden an diese E-Mail gesendet</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -3006,9 +3006,9 @@
                                             <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
                                                 <Icons.MapPin className="h-10 w-10 text-amber-600" />
                                             </div>
-                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">2. Reisedaten eingeben</h3>
+                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">2. Reisedaten</h3>
                                             <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
-                                                Wählen Sie Ihren <strong className="text-amber-600">Reisetyp</strong> (Schengen oder weltweit), das <strong className="text-amber-600">Reisedatum</strong> und die <strong className="text-amber-600">Reisedauer</strong>.
+                                                Wählen Sie <strong className="text-amber-600">Reiseziel</strong> (Schengen oder Andere), <strong className="text-amber-600">Reisedatum</strong> und <strong className="text-amber-600">Reisedauer</strong>.
                                             </p>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200 text-center">
@@ -3017,7 +3017,7 @@
                                                 </div>
                                                 <div className="bg-sky-50 rounded-xl p-3 border border-sky-200 text-center">
                                                     <span className="text-2xl">🌍</span>
-                                                    <p className="text-xs text-sky-700 mt-1 font-medium">Weltweit</p>
+                                                    <p className="text-xs text-sky-700 mt-1 font-medium">Andere Länder</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -3025,22 +3025,18 @@
                                     
                                     {tutorialStep === 2 && (
                                         <div className="animate-fade-in">
-                                            <div className="w-20 h-20 bg-gradient-to-br from-teal-100 to-teal-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                                                <Icons.Pill className="h-10 w-10 text-teal-600" />
+                                            <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                                <Icons.UserCheck className="h-10 w-10 text-indigo-600" />
                                             </div>
-                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">3. Medikament auswählen</h3>
+                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">3. Arzt auswählen</h3>
                                             <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
-                                                Wählen Sie Ihr <strong className="text-teal-600">Medikament</strong> aus der Liste und geben Sie die <strong className="text-teal-600">Dosierung</strong> ein (Morgens-Mittags-Abends).
+                                                Wählen Sie den <strong className="text-indigo-600">verschreibenden Arzt</strong> aus der Liste aus.
                                             </p>
-                                            <div className="bg-teal-50 rounded-2xl p-4 border border-teal-200">
-                                                <div className="flex items-center justify-center gap-4 text-lg font-mono">
-                                                    <span className="bg-white px-3 py-1 rounded-lg border">1</span>
-                                                    <span className="text-teal-400">-</span>
-                                                    <span className="bg-white px-3 py-1 rounded-lg border">0</span>
-                                                    <span className="text-teal-400">-</span>
-                                                    <span className="bg-white px-3 py-1 rounded-lg border">1</span>
+                                            <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-200">
+                                                <div className="flex items-center gap-3 text-sm text-indigo-700">
+                                                    <Icons.Shield className="h-5 w-5 text-indigo-500" />
+                                                    <span>Der Arzt erscheint auf Ihrem Attest und BTM-Formular</span>
                                                 </div>
-                                                <p className="text-xs text-teal-600 text-center mt-2">Beispiel: 1 morgens, 0 mittags, 1 abends</p>
                                             </div>
                                         </div>
                                     )}
@@ -3052,20 +3048,20 @@
                                             </div>
                                             <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">4. Persönliche Daten</h3>
                                             <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
-                                                Geben Sie Ihre <strong className="text-rose-600">persönlichen Daten</strong> ein: Name, Geburtsdatum, Adresse und Passnummer.
+                                                Geben Sie Ihre <strong className="text-rose-600">persönlichen Daten</strong> ein:
                                             </p>
                                             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2">
                                                 <div className="flex items-center gap-2 text-sm text-slate-600">
                                                     <Icons.Check className="h-4 w-4 text-emerald-500" /> Vor- und Nachname
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                    <Icons.Check className="h-4 w-4 text-emerald-500" /> Geburtsdatum (TT.MM.JJJJ)
+                                                    <Icons.Check className="h-4 w-4 text-emerald-500" /> Geburtsdatum & Geburtsort
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                    <Icons.Check className="h-4 w-4 text-emerald-500" /> Vollständige Adresse
+                                                    <Icons.Check className="h-4 w-4 text-emerald-500" /> Wohnanschrift
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                    <Icons.Check className="h-4 w-4 text-emerald-500" /> Reisepass-Nummer
+                                                    <Icons.Check className="h-4 w-4 text-emerald-500" /> Pass-Nummer & Nationalität
                                                 </div>
                                             </div>
                                         </div>
@@ -3073,26 +3069,75 @@
                                     
                                     {tutorialStep === 4 && (
                                         <div className="animate-fade-in">
-                                            <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                                                <Icons.Check className="h-10 w-10 text-emerald-600" />
+                                            <div className="w-20 h-20 bg-gradient-to-br from-teal-100 to-teal-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                                <Icons.Pill className="h-10 w-10 text-teal-600" />
                                             </div>
-                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">5. Bezahlen & Erhalten</h3>
+                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">5. Medikament & Dosierung</h3>
                                             <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
-                                                Nach der <strong className="text-emerald-600">Bezahlung</strong> erhalten Sie Ihre Dokumente automatisch per <strong className="text-emerald-600">E-Mail</strong>.
+                                                Wählen Sie Ihr <strong className="text-teal-600">Medikament</strong> und geben Sie die <strong className="text-teal-600">Dosierung</strong> ein.
+                                            </p>
+                                            <div className="bg-teal-50 rounded-2xl p-4 border border-teal-200">
+                                                <div className="flex items-center justify-center gap-4 text-lg font-mono mb-2">
+                                                    <span className="bg-white px-3 py-1 rounded-lg border">1</span>
+                                                    <span className="text-teal-400">-</span>
+                                                    <span className="bg-white px-3 py-1 rounded-lg border">0</span>
+                                                    <span className="text-teal-400">-</span>
+                                                    <span className="bg-white px-3 py-1 rounded-lg border">1</span>
+                                                </div>
+                                                <p className="text-xs text-teal-600 text-center">Morgens - Mittags - Abends</p>
+                                            </div>
+                                            <div className="mt-4 bg-slate-50 rounded-xl p-3 border border-slate-200">
+                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                    <Icons.Calculator className="h-4 w-4 text-slate-500" />
+                                                    <span>Der Rechner berechnet automatisch die Reisemenge</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {tutorialStep === 5 && (
+                                        <div className="animate-fade-in">
+                                            <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                                <Icons.CreditCard className="h-10 w-10 text-emerald-600" />
+                                            </div>
+                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">6. Bezahlen</h3>
+                                            <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
+                                                Bezahlen Sie sicher mit <strong className="text-emerald-600">Stripe</strong> – Kreditkarte, PayPal, Apple Pay oder Google Pay.
+                                            </p>
+                                            <div className="flex justify-center gap-4 mb-4">
+                                                <div className="bg-white rounded-lg p-2 border shadow-sm">💳</div>
+                                                <div className="bg-white rounded-lg p-2 border shadow-sm">🅿️</div>
+                                                <div className="bg-white rounded-lg p-2 border shadow-sm">🍎</div>
+                                                <div className="bg-white rounded-lg p-2 border shadow-sm">🔷</div>
+                                            </div>
+                                            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200 text-center">
+                                                <p className="text-sm text-emerald-700 font-medium">29,00 € für BTM-Formular + Attest</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {tutorialStep === 6 && (
+                                        <div className="animate-fade-in">
+                                            <div className="w-20 h-20 bg-gradient-to-br from-sky-100 to-sky-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                                <Icons.Mail className="h-10 w-10 text-sky-600" />
+                                            </div>
+                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">7. E-Mail & Formulare</h3>
+                                            <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
+                                                Nach der Zahlung erhalten Sie Ihre <strong className="text-sky-600">Dokumente per E-Mail</strong>:
                                             </p>
                                             <div className="space-y-3">
                                                 <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200 flex items-center gap-3">
                                                     <Icons.FileText className="h-5 w-5 text-emerald-600" />
-                                                    <span className="text-sm text-emerald-700 font-medium">BTM-Formular (für Gesundheitsamt)</span>
+                                                    <span className="text-sm text-emerald-700 font-medium">BTM-Formular (→ Gesundheitsamt)</span>
                                                 </div>
                                                 <div className="bg-sky-50 rounded-xl p-3 border border-sky-200 flex items-center gap-3">
                                                     <Icons.FileText className="h-5 w-5 text-sky-600" />
-                                                    <span className="text-sm text-sky-700 font-medium">Ärztliches Attest (Deutsch/Englisch)</span>
+                                                    <span className="text-sm text-sky-700 font-medium">Ärztliches Attest (DE/EN)</span>
                                                 </div>
                                             </div>
                                             <div className="mt-6 bg-amber-50 rounded-xl p-4 border border-amber-200">
                                                 <p className="text-sm text-amber-800">
-                                                    <strong>⚠️ Wichtig:</strong> Das BTM-Formular muss vom Gesundheitsamt beglaubigt werden (Schengen-Reisen).
+                                                    <strong>⚠️ Wichtig:</strong> BTM-Formular beim Gesundheitsamt beglaubigen lassen!
                                                 </p>
                                             </div>
                                         </div>
@@ -3118,10 +3163,10 @@
                                     )}
                                     
                                     <span className="text-sm text-slate-500">
-                                        {tutorialStep + 1} / 5
+                                        {tutorialStep + 1} / 7
                                     </span>
                                     
-                                    {tutorialStep < 4 ? (
+                                    {tutorialStep < 6 ? (
                                         <button 
                                             onClick={() => setTutorialStep(tutorialStep + 1)}
                                             className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-xl font-medium hover:from-teal-600 hover:to-emerald-600 transition-all flex items-center gap-2"
@@ -3133,7 +3178,7 @@
                                             onClick={() => { setShowTutorial(false); setTutorialStep(0); localStorage.setItem('nevpaz_tutorial_seen', 'true'); }}
                                             className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-green-600 transition-all flex items-center gap-2"
                                         >
-                                            Starten <Icons.Check className="h-4 w-4" />
+                                            Los geht's! <Icons.Check className="h-4 w-4" />
                                         </button>
                                     )}
                                 </div>
