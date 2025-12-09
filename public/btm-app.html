@@ -428,11 +428,11 @@
 
         // Konstanten
         const DOCTORS = [
-            { id: 'golsari', name: 'Dr. med. Amir Golsari', firstName: 'Amir', label: 'Dr. med. Amir Golsari (Facharzt für Neurologie und Psychiatrie)', title_en: 'Specialist for Neurology and Psychiatry', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
-            { id: 'strzedulla', name: 'Dr. med. Isabella Strzedulla', firstName: 'Isabella', label: 'Dr. med. Isabella Strzedulla (Fachärztin für Neurologie)', title_en: 'Specialist for Neurology', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
-            { id: 'runte', name: 'Dr. med. Frederic Runte', firstName: 'Frederic', label: 'Dr. med. Frederic Runte (Facharzt für Neurologie)', title_en: 'Specialist for Neurology', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
-            { id: 'zumfelde', name: 'Dr. med. Tabea zum Felde', firstName: 'Tabea', label: 'Dr. med. Tabea zum Felde', title_en: 'Medical Doctor', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
-            { id: 'lindenau', name: 'Dr. Elna Lindenau', firstName: 'Elna', label: 'Dr. Elna Lindenau', title_en: 'Medical Doctor', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
+            { id: 'golsari', name: 'Dr. med. Amir Golsari', title: 'Dr. med.', lastName: 'Golsari', firstName: 'Amir', label: 'Dr. med. Amir Golsari (Facharzt für Neurologie und Psychiatrie)', title_en: 'Specialist for Neurology and Psychiatry', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
+            { id: 'strzedulla', name: 'Dr. med. Isabella Strzedulla', title: 'Dr. med.', lastName: 'Strzedulla', firstName: 'Isabella', label: 'Dr. med. Isabella Strzedulla (Fachärztin für Neurologie)', title_en: 'Specialist for Neurology', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
+            { id: 'runte', name: 'Dr. med. Frederic Runte', title: 'Dr. med.', lastName: 'Runte', firstName: 'Frederic', label: 'Dr. med. Frederic Runte (Facharzt für Neurologie)', title_en: 'Specialist for Neurology', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
+            { id: 'zumfelde', name: 'Dr. med. Tabea zum Felde', title: 'Dr. med.', lastName: 'zum Felde', firstName: 'Tabea', label: 'Dr. med. Tabea zum Felde', title_en: 'Medical Doctor', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
+            { id: 'lindenau', name: 'Dr. med. Elna Lindenau', title: 'Dr. med.', lastName: 'Lindenau', firstName: 'Elna', label: 'Dr. med. Elna Lindenau', title_en: 'Medical Doctor', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
         ];
 
         const MEDICATION_PRESETS = [
@@ -2555,7 +2555,7 @@
                                 // SEKTION A - Arzt (kompakter)
                                 y = 62;
                                 y = drawPremiumSection('A', 'Verschreibender Arzt', 'Prescribing Physician', y);
-                                drawPremiumField('Name', 'Surname', doctor.name, margin, y);
+                                drawPremiumField('Name', 'Surname', `${doctor.title} ${doctor.lastName}`, margin, y);
                                 drawPremiumField('Vorname', 'First Name', doctor.firstName, margin + 80, y);
                                 drawProfessionalSignature(pageWidth - margin - 58, y + 2);
                                 y += 12;
@@ -2625,10 +2625,10 @@
                                 btmDoc.text(`${formData.travelStartDate}`, margin + 90, y + 13.5);
                                 btmDoc.setFontSize(9);
                                 btmDoc.setTextColor(...gold);
-                                btmDoc.text('→', margin + 122, y + 13.5);
+                                btmDoc.text(' - ', margin + 120, y + 13.5);
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${endDate}`, margin + 130, y + 13.5);
+                                btmDoc.text(`${endDate}`, margin + 127, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
@@ -2710,7 +2710,7 @@
                                 btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                btmDoc.text(`Gültig: ${formData.travelStartDate} → ${endDate}`, pageWidth - margin, 17, { align: 'right' });
+                                btmDoc.text(`Gültig: ${formData.travelStartDate} - ${endDate}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // SEKTION D - Behörde
                                 y = 28;
@@ -2730,6 +2730,13 @@
                                 btmDoc.setDrawColor(...silver);
                                 btmDoc.setLineWidth(0.4);
                                 btmDoc.roundedRect(margin, y + 10, contentWidth, 20, 2, 2, 'S');
+                                // Behördenname einfügen wenn vorhanden
+                                if (formData.healthAuthorityName) {
+                                    btmDoc.setFont('helvetica', 'normal');
+                                    btmDoc.setFontSize(9);
+                                    btmDoc.setTextColor(...charcoal);
+                                    btmDoc.text(formData.healthAuthorityName, margin + 4, y + 20);
+                                }
                                 y += 38;
                                 
                                 // Feld: Anschrift der Behörde
@@ -2745,6 +2752,14 @@
                                 btmDoc.roundedRect(margin, y + 10, contentWidth, 28, 2, 2, 'F');
                                 btmDoc.setDrawColor(...silver);
                                 btmDoc.roundedRect(margin, y + 10, contentWidth, 28, 2, 2, 'S');
+                                // Behördenadresse einfügen wenn vorhanden
+                                if (formData.healthAuthorityAddress) {
+                                    btmDoc.setFont('helvetica', 'normal');
+                                    btmDoc.setFontSize(8);
+                                    btmDoc.setTextColor(...charcoal);
+                                    const addressLines = btmDoc.splitTextToSize(formData.healthAuthorityAddress, contentWidth - 8);
+                                    btmDoc.text(addressLines, margin + 4, y + 18);
+                                }
                                 y += 46;
                                 
                                 // Feld: Datum, Unterschrift und Dienstsiegel
