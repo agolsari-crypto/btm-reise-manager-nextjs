@@ -1335,11 +1335,15 @@
                                             // URL bereinigen
                                             window.history.replaceState({}, document.title, window.location.pathname);
                                             
-                                            // PDF generieren nach kurzem Delay
+                                            // Markiere als bezahlt und generiere PDF direkt
+                                            sessionStorage.setItem('payment_verified', 'true');
+                                            setSuccess(true);
+                                            
+                                            // PDF DIREKT generieren nach kurzem Delay für State-Update
                                             setTimeout(() => {
-                                                setSuccess(true);
-                                                // generatePDF wird aufgerufen wenn formData gesetzt ist
-                                            }, 500);
+                                                console.log('📄 Generating PDF after verified payment...');
+                                                generatePDF('bundle');
+                                            }, 800);
                                         } else {
                                             console.error('❌ Zahlung nicht verifiziert:', result.error);
                                             alert('Die Zahlung konnte nicht verifiziert werden. Bitte kontaktieren Sie uns unter info@nevpaz.de');
@@ -1367,15 +1371,6 @@
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
             }, []);
-            
-            // Automatisch PDF generieren nach erfolgreicher Zahlung
-            useEffect(() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('payment') === 'success' && formData.selectedDoctorId && success) {
-                    console.log('📄 Generating PDF after payment...');
-                    generatePDF('bundle');
-                }
-            }, [formData.selectedDoctorId, success]);
             
             // Prüfen ob Benutzer bereits bewertet hat
             const hasUserReviewed = currentUser && reviews.some(r => r.email === currentUser.email);
