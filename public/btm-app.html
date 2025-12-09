@@ -1527,7 +1527,16 @@
                 setTimeout(async () => {
                     try {
                         const { jsPDF } = window.jspdf;
-                        const doc = new jsPDF();
+                        
+                        // PDF mit Sicherheitseinschränkungen erstellen
+                        const doc = new jsPDF({
+                            encryption: {
+                                userPassword: '', // Kein Passwort zum Öffnen
+                                ownerPassword: 'NEVPAZ_DOC_2024_SECURE', // Passwort für Berechtigungen
+                                userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
+                                // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
+                            }
+                        });
                         const pageWidth = doc.internal.pageSize.getWidth();
                         const pageHeight = doc.internal.pageSize.getHeight();
                         doc.setFont('helvetica');
@@ -2148,7 +2157,14 @@
                             // Attest PDF wird später zusammen mit BTM-Formular per Email gesendet
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
-                            const btmDoc = new jsPDF();
+                            // Mit Sicherheitseinschränkungen erstellen
+                            const btmDoc = new jsPDF({
+                                encryption: {
+                                    userPassword: '', // Kein Passwort zum Öffnen
+                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE', // Passwort für Berechtigungen
+                                    userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
+                                }
+                            });
                             btmDoc.setFont('helvetica');
                             
                             // Helper für Bilder im BTM-Dokument
@@ -2806,6 +2822,15 @@
                                 btmDoc.line(contentX, y, pageWidth - 20, y); btmDoc.text('Address', contentX, y + 3); y += 15;
                                 btmDoc.line(contentX, y, pageWidth - 20, y); btmDoc.text('Seal / Signature', contentX, y + 3);
                             }
+                            
+                            // BTM-Formular Properties setzen
+                            btmDoc.setProperties({
+                                title: `BTM-Bescheinigung - ${formData.patName || 'Patient'}`,
+                                subject: 'Schengen-Bescheinigung für das Mitführen von Betäubungsmitteln',
+                                author: 'Privatpraxis NEVPAZ GmbH',
+                                creator: 'NEVPAZ BTM-Reise-Manager',
+                                keywords: 'BTM, Betäubungsmittel, Schengen, Reisebescheinigung'
+                            });
                             
                             // PDFs als Base64 extrahieren für Email-Versand
                             const attestPdfBase64 = doc.output('datauristring').split(',')[1];
