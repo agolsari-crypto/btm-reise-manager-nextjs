@@ -1261,6 +1261,9 @@
                 if (paymentStatus === 'success' && sessionId) {
                     console.log('💳 Stripe Payment Success detected, sessionId:', sessionId);
                     
+                    // Stripe Session ID für Email-Versand speichern
+                    sessionStorage.setItem('stripe_session_id', sessionId);
+                    
                     // Gespeicherte Formulardaten laden
                     const pendingData = localStorage.getItem('nevpaz_pending_payment');
                     if (pendingData) {
@@ -2824,7 +2827,12 @@
                                             attestPdfBase64: attestPdfBase64,
                                             travelStartDate: formData.travelStartDate,
                                             travelEndDate: endDate,
-                                            destination: formData.destination
+                                            destination: formData.destination,
+                                            // Zahlungsinformationen für Buchhaltung
+                                            paymentAmount: isAdminMode ? null : PRICES.bundle.toFixed(2),
+                                            paymentMethod: 'Stripe',
+                                            stripeSessionId: sessionStorage.getItem('stripe_session_id') || null,
+                                            isAdminMode: isAdminMode
                                         })
                                     });
                                     
@@ -2833,6 +2841,8 @@
                                     if (emailResult.success) {
                                         console.log('✅ Email erfolgreich gesendet:', emailResult.message);
                                         alert(`✅ Ihre Dokumente wurden erfolgreich an ${patientEmail} gesendet!`);
+                                        // Stripe Session ID aufräumen
+                                        sessionStorage.removeItem('stripe_session_id');
                                     } else {
                                         console.error('❌ Email-Fehler:', emailResult.error);
                                         // Fallback: PDFs trotzdem herunterladen
