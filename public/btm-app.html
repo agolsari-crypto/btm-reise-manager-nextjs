@@ -1326,6 +1326,12 @@
                                             console.log('✅ Zahlung verifiziert:', result);
                                             localStorage.removeItem('nevpaz_pending_payment');
                                             
+                                            // E-Mail aus Stripe-Daten speichern für späteren Versand
+                                            if (result.customerEmail) {
+                                                sessionStorage.setItem('stripe_customer_email', result.customerEmail);
+                                                console.log('📧 Stripe-Email gespeichert:', result.customerEmail);
+                                            }
+                                            
                                             // URL bereinigen
                                             window.history.replaceState({}, document.title, window.location.pathname);
                                             
@@ -2874,7 +2880,9 @@
                             const btmPdfBase64 = btmDoc.output('datauristring').split(',')[1];
                             
                             // Email mit PDFs senden
-                            const patientEmail = currentUser?.email;
+                            // Priorität: currentUser.email > Stripe customerEmail
+                            const patientEmail = currentUser?.email || sessionStorage.getItem('stripe_customer_email');
+                            console.log('📧 E-Mail Quelle:', currentUser?.email ? 'currentUser' : 'Stripe Session');
                             if (patientEmail) {
                                 console.log('📧 Sende Dokumente per Email an:', patientEmail);
                                 try {
