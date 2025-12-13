@@ -1727,7 +1727,8 @@
                                                 console.log('📄 Generating PDF after verified payment...');
                                                 console.log('📋 Using saved form data:', savedFormData);
                                                 console.log('🖊️ Using doctor assets:', Object.keys(loadedAssets));
-                                                generatePDF('bundle', savedFormData);
+                                                // WICHTIG: Assets direkt übergeben, nicht auf State warten
+                                                generatePDF('bundle', savedFormData, loadedAssets);
                                             }, 500);
                                         } else {
                                             console.error('❌ Zahlung nicht verifiziert:', result.error);
@@ -1913,14 +1914,18 @@
             };
 
             // PDF Generation
-            const generatePDF = (type, overrideFormData = null) => {
+            const generatePDF = (type, overrideFormData = null, overrideAssets = null) => {
                 // Verwende übergebene Daten oder State
                 const activeFormData = overrideFormData || formData;
                 
                 if (!window.jspdf) { alert("PDF-Bibliothek wird noch geladen."); return; }
                 const doctor = DOCTORS.find(d => d.id === activeFormData.selectedDoctorId);
                 if (!doctor) { alert("Bitte wählen Sie einen Arzt aus."); return; }
-                const docAssets = doctorAssets[doctor.id] || { signature: null, stamp: null, letterhead: null };
+                
+                // Verwende übergebene Assets (wichtig für Stripe-Callback) oder State
+                const activeAssets = overrideAssets || doctorAssets;
+                const docAssets = activeAssets[doctor.id] || { signature: null, stamp: null, letterhead: null };
+                console.log('📋 generatePDF - Doctor:', doctor.id, '- Assets verfügbar:', !!docAssets.signature, !!docAssets.stamp);
                 setLoading(true);
                 
                 // Übersetzung Darreichungsform (Hartkapseln → Extended Release)
