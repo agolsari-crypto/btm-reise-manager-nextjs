@@ -435,6 +435,42 @@
             { id: 'lindenau', name: 'Dr. med. Elna Lindenau', title: 'Dr. med.', lastName: 'Lindenau', firstName: 'Elna', label: 'Dr. med. Elna Lindenau', title_en: 'Medical Doctor', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
         ];
 
+        // Globale Assets die von allen Benutzern verwendet werden
+        // Diese werden von /assets-config.json geladen oder aus localStorage
+        let GLOBAL_DOCTOR_ASSETS = {};
+        let GLOBAL_LOGO = null;
+        
+        // Funktion zum Laden der globalen Assets
+        const loadGlobalAssets = async () => {
+            try {
+                // Versuche zuerst, Assets von der Server-Konfiguration zu laden
+                const response = await fetch('/assets-config.json');
+                if (response.ok) {
+                    const config = await response.json();
+                    if (config.doctorAssets) GLOBAL_DOCTOR_ASSETS = config.doctorAssets;
+                    if (config.logo) GLOBAL_LOGO = config.logo;
+                    console.log('✅ Globale Assets von Server geladen');
+                    return true;
+                }
+            } catch (err) {
+                console.log('ℹ️ Keine Server-Assets gefunden, verwende localStorage');
+            }
+            
+            // Fallback: localStorage
+            try {
+                const savedAssets = localStorage.getItem('nevpaz_assets');
+                const savedLogo = localStorage.getItem('nevpaz_logo');
+                if (savedAssets) GLOBAL_DOCTOR_ASSETS = JSON.parse(savedAssets);
+                if (savedLogo) GLOBAL_LOGO = savedLogo;
+            } catch (err) {
+                console.error('Fehler beim Laden der Assets:', err);
+            }
+            return false;
+        };
+        
+        // Assets beim Seitenstart laden
+        loadGlobalAssets();
+
         const MEDICATION_PRESETS = [
             { name: 'Ritalin Adult', substance: 'Methylphenidate' },
             { name: 'Medikinet adult', substance: 'Methylphenidate' },
@@ -1541,18 +1577,39 @@
             const isFormValid = validationErrors.length === 0;
             const hasSignature = currentDocAssets?.signature;
 
-            // LocalStorage
+            // LocalStorage und Server-Assets laden
             useEffect(() => {
-                try {
-                    const savedAssets = localStorage.getItem('nevpaz_assets');
-                    const savedLogo = localStorage.getItem('nevpaz_logo');
+                const loadAssets = async () => {
+                    try {
+                        // Zuerst globale Assets von Server laden
+                        const response = await fetch('/assets-config.json');
+                        if (response.ok) {
+                            const config = await response.json();
+                            if (config.doctorAssets && Object.keys(config.doctorAssets).length > 0) {
+                                setDoctorAssets(config.doctorAssets);
+                                console.log('✅ Arzt-Assets von Server geladen');
+                            }
+                            if (config.logo) {
+                                setLogo(config.logo);
+                                console.log('✅ Logo von Server geladen');
+                            }
+                        }
+                    } catch (err) {
+                        console.log('ℹ️ Keine Server-Assets, verwende localStorage');
+                        // Fallback: localStorage
+                        const savedAssets = localStorage.getItem('nevpaz_assets');
+                        const savedLogo = localStorage.getItem('nevpaz_logo');
+                        if (savedAssets) setDoctorAssets(JSON.parse(savedAssets));
+                        if (savedLogo) setLogo(savedLogo);
+                    }
+                    
+                    // User und Reviews immer aus localStorage
                     const savedUser = localStorage.getItem('nevpaz_current_user');
                     const savedReviews = localStorage.getItem('nevpaz_reviews');
-                    if (savedAssets) setDoctorAssets(JSON.parse(savedAssets));
-                    if (savedLogo) setLogo(savedLogo);
                     if (savedUser) setCurrentUser(JSON.parse(savedUser));
                     if (savedReviews) setReviews(JSON.parse(savedReviews));
-                } catch (err) { console.error('Failed to load from localStorage:', err); }
+                };
+                loadAssets();
             }, []);
 
             useEffect(() => { if (Object.keys(doctorAssets).length > 0) localStorage.setItem('nevpaz_assets', JSON.stringify(doctorAssets)); }, [doctorAssets]);
@@ -4412,7 +4469,30 @@
                                 {/* Admin: Briefpapier */}
                                 {isAdminMode && (
                                     <div className="mb-6 sm:mb-8 p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-xl animate-slide-down">
-                                        <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-4"><Icons.PenTool className="h-4 w-4 text-sky-500" />Admin: Briefpapier für Atteste</div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2 text-sm font-bold text-slate-700"><Icons.PenTool className="h-4 w-4 text-sky-500" />Admin: Briefpapier für Atteste</div>
+                                            <button 
+                                                onClick={() => {
+                                                    const config = {
+                                                        doctorAssets: doctorAssets,
+                                                        logo: logo,
+                                                        exportedAt: new Date().toISOString()
+                                                    };
+                                                    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const a = document.createElement('a');
+                                                    a.href = url;
+                                                    a.download = 'assets-config.json';
+                                                    a.click();
+                                                    URL.revokeObjectURL(url);
+                                                    alert('✅ assets-config.json wurde heruntergeladen!\n\nBitte speichern Sie diese Datei im public-Ordner Ihres Projekts und deployen Sie erneut, damit die Signaturen für alle Patienten verfügbar sind.');
+                                                }}
+                                                className="text-xs px-3 py-1.5 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-medium hover:bg-indigo-200 transition-colors flex items-center gap-1"
+                                            >
+                                                <Icons.Download className="h-3 w-3" />
+                                                Export für Server
+                                            </button>
+                                        </div>
                                         <p className="text-xs text-slate-500 mb-4">Laden Sie hier das Briefpapier (Hintergrundbild) für das englische Attest hoch.</p>
                                         <div className="relative mb-3">
                                             <select value={setupDoctorId} onChange={(e) => setSetupDoctorId(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none appearance-none cursor-pointer pr-10 bg-white text-sm text-slate-700">
@@ -4424,6 +4504,16 @@
                                             <div className="flex items-center gap-2"><Icons.FileImage className="h-4 w-4 text-slate-400" /><span className="text-sm text-slate-600 font-medium">Briefpapier</span></div>
                                             <button onClick={() => letterheadInputRef.current?.click()} className={`text-xs px-4 py-2 rounded-lg border font-medium transition-all ${doctorAssets[setupDoctorId]?.letterhead ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white hover:bg-slate-50 border-slate-200'}`}>{doctorAssets[setupDoctorId]?.letterhead ? '✓ Ersetzen' : 'Hochladen'}</button>
                                             <input type="file" ref={letterheadInputRef} onChange={(e) => handleDoctorAssetUpload(e, 'letterhead')} accept="image/*" className="hidden" />
+                                        </div>
+                                        
+                                        {/* Hinweis für Server-Export */}
+                                        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <div className="flex items-start gap-2">
+                                                <Icons.AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                                                <div className="text-xs text-amber-800">
+                                                    <strong>Wichtig:</strong> Damit Signaturen in Patienten-PDFs erscheinen, klicken Sie nach dem Hochladen auf "Export für Server" und speichern Sie die Datei im <code className="bg-amber-100 px-1 rounded">public</code>-Ordner.
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
