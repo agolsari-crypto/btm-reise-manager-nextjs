@@ -1482,6 +1482,7 @@
             const [authOpen, setAuthOpen] = useState(true);
             const [plzSearch, setPlzSearch] = useState('');
             const [adminTestMode, setAdminTestMode] = useState(false);
+            const [showValidationErrors, setShowValidationErrors] = useState(false);
             
             // Patienten-Login States
             const [currentUser, setCurrentUser] = useState(null);
@@ -1513,7 +1514,29 @@
             const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
             const selectedDoctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
             const currentDocAssets = selectedDoctor ? doctorAssets[selectedDoctor.id] : null;
-            const isFormValid = formData.selectedDoctorId && formData.patName && formData.patFirstName;
+            
+            // Erweiterte Validierung mit Fehlermeldungen
+            const getValidationErrors = () => {
+                const errors = [];
+                if (!formData.selectedDoctorId) errors.push({ field: 'Arzt', message: 'Bitte wählen Sie einen Arzt aus' });
+                if (!formData.patFirstName?.trim()) errors.push({ field: 'Vorname', message: 'Bitte geben Sie Ihren Vornamen ein' });
+                if (!formData.patName?.trim()) errors.push({ field: 'Nachname', message: 'Bitte geben Sie Ihren Nachnamen ein' });
+                if (!formData.patDob?.trim()) errors.push({ field: 'Geburtsdatum', message: 'Bitte geben Sie Ihr Geburtsdatum ein' });
+                if (!formData.patPob?.trim()) errors.push({ field: 'Geburtsort', message: 'Bitte geben Sie Ihren Geburtsort ein' });
+                if (!formData.patPassport?.trim()) errors.push({ field: 'Pass-Nr.', message: 'Bitte geben Sie Ihre Pass-Nummer ein' });
+                if (!formData.patAddress?.trim()) errors.push({ field: 'Adresse', message: 'Bitte geben Sie Ihre Wohnanschrift ein' });
+                if (!formData.patSex) errors.push({ field: 'Geschlecht', message: 'Bitte wählen Sie Ihr Geschlecht aus' });
+                if (!formData.medTradeName?.trim()) errors.push({ field: 'Medikament', message: 'Bitte wählen Sie ein Medikament aus' });
+                if (!formData.medSubstance?.trim()) errors.push({ field: 'Wirkstoff', message: 'Bitte geben Sie den Wirkstoff ein' });
+                if (!formData.medConcentration || formData.medConcentration <= 0) errors.push({ field: 'Konzentration', message: 'Bitte geben Sie die Konzentration ein' });
+                if (!formData.travelStartDate) errors.push({ field: 'Reisedatum', message: 'Bitte wählen Sie ein Reisedatum' });
+                if (!formData.travelDuration || formData.travelDuration <= 0) errors.push({ field: 'Reisedauer', message: 'Bitte geben Sie die Reisedauer ein' });
+                if (formData.doseMorning + formData.doseNoon + formData.doseEvening <= 0) errors.push({ field: 'Dosierung', message: 'Bitte geben Sie mindestens eine Dosis ein' });
+                return errors;
+            };
+            
+            const validationErrors = getValidationErrors();
+            const isFormValid = validationErrors.length === 0;
             const hasSignature = currentDocAssets?.signature;
 
             // LocalStorage
@@ -1760,8 +1783,16 @@
             };
             
             const initiatePurchase = () => { 
-                if (!formData.selectedDoctorId) {
-                    alert('Bitte wählen Sie zuerst einen Arzt aus.');
+                // Prüfen ob alle Felder ausgefüllt sind
+                if (!isFormValid) {
+                    setShowValidationErrors(true);
+                    // Scroll zum ersten Fehler
+                    setTimeout(() => {
+                        const errorElement = document.querySelector('.validation-error-highlight');
+                        if (errorElement) {
+                            errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 100);
                     return;
                 }
                 
@@ -4085,6 +4116,43 @@
                                         <button onClick={() => { setShowPatientLoginModal(false); setPatientLoginError(''); }} className="flex-1 py-3.5 text-slate-500 hover:bg-slate-100 rounded-xl font-medium transition-colors touch-target">Abbrechen</button>
                                         <button onClick={handlePatientLogin} className="flex-1 py-3.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium transition-colors flex items-center justify-center gap-2 touch-target"><Icons.UserCheck className="h-4 w-4" />Anmelden</button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Validierungsfehler Modal */}
+                    {showValidationErrors && validationErrors.length > 0 && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+                            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto animate-slide-up">
+                                <div className="bg-gradient-to-r from-red-500 to-rose-600 p-4 sm:p-6 text-white sticky top-0">
+                                    <h3 className="text-lg sm:text-xl font-bold flex items-center gap-3">
+                                        <Icons.AlertCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+                                        Fehlende Angaben
+                                    </h3>
+                                    <p className="text-red-100 text-xs sm:text-sm mt-1">Bitte vervollständigen Sie folgende Felder:</p>
+                                </div>
+                                <div className="p-4 sm:p-6">
+                                    <div className="space-y-2 mb-6">
+                                        {validationErrors.map((error, idx) => (
+                                            <div key={idx} className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                                                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                                    <Icons.X className="h-4 w-4 text-red-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-semibold text-red-800 text-sm">{error.field}</div>
+                                                    <div className="text-red-600 text-xs">{error.message}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowValidationErrors(false)}
+                                        className="w-full py-3.5 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:from-red-600 hover:to-rose-700 font-medium transition-all flex items-center justify-center gap-2 touch-target"
+                                    >
+                                        <Icons.Check className="h-4 w-4" />
+                                        Verstanden, Felder ausfüllen
+                                    </button>
                                 </div>
                             </div>
                         </div>
