@@ -1519,6 +1519,8 @@
             const getValidationErrors = () => {
                 const errors = [];
                 if (!formData.selectedDoctorId) errors.push({ field: 'Arzt', message: 'Bitte wählen Sie einen Arzt aus' });
+                if (!formData.destination?.trim()) errors.push({ field: 'Reiseziel', message: 'Bitte geben Sie ein Reiseziel ein' });
+                if (!formData.healthAuthorityName?.trim()) errors.push({ field: 'Gesundheitsamt', message: 'Bitte suchen Sie Ihr Gesundheitsamt per PLZ' });
                 if (!formData.patFirstName?.trim()) errors.push({ field: 'Vorname', message: 'Bitte geben Sie Ihren Vornamen ein' });
                 if (!formData.patName?.trim()) errors.push({ field: 'Nachname', message: 'Bitte geben Sie Ihren Nachnamen ein' });
                 if (!formData.patDob?.trim()) errors.push({ field: 'Geburtsdatum', message: 'Bitte geben Sie Ihr Geburtsdatum ein' });
