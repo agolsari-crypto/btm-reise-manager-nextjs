@@ -1549,8 +1549,10 @@
             const sigInputRef = useRef(null);
             const letterheadInputRef = useRef(null);
 
-            // Berechnete Werte
-            const totalUnits = formData.medDailyCount * formData.travelDuration;
+            // Berechnete Werte - robuste Berechnung der täglichen Einheiten
+            const calculatedDailyCount = formData.medDailyCount || 
+                ((formData.doseMorning || 0) + (formData.doseNoon || 0) + (formData.doseEvening || 0));
+            const totalUnits = calculatedDailyCount * formData.travelDuration;
             const totalSubstance = totalUnits * formData.medConcentration;
             const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
             const selectedDoctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
@@ -1891,6 +1893,15 @@
                 // Admin-Modus: Direkt PDF generieren ohne Zahlung
                 if (isAdminMode) {
                     console.log('Admin-Modus: PDFs werden ohne Zahlung generiert');
+                    console.log('📋 Aktuelle formData:', {
+                        medDailyCount: formData.medDailyCount,
+                        doseMorning: formData.doseMorning,
+                        doseNoon: formData.doseNoon,
+                        doseEvening: formData.doseEvening,
+                        medInstructions: formData.medInstructions,
+                        travelDuration: formData.travelDuration,
+                        medConcentration: formData.medConcentration
+                    });
                     generatePDF('bundle');
                     return;
                 }
@@ -1977,6 +1988,41 @@
                     // Verwende activeFormData für alle Referenzen in dieser Funktion
                     const formData = activeFormData;
                     
+                    // WICHTIG: Berechne totalSubstance und endDate aus den übergebenen Formulardaten
+                    // Berechne medDailyCount aus Einzeldosen falls nicht gesetzt
+                    const dailyCount = formData.medDailyCount || 
+                        ((formData.doseMorning || 0) + (formData.doseNoon || 0) + (formData.doseEvening || 0));
+                    
+                    // Falls immer noch 0, parse aus medInstructions (z.B. "1-0-0")
+                    let finalDailyCount = dailyCount;
+                    if (finalDailyCount === 0 && formData.medInstructions) {
+                        const parts = formData.medInstructions.split('-').map(p => parseInt(p) || 0);
+                        finalDailyCount = parts.reduce((sum, val) => sum + val, 0);
+                    }
+                    
+                    // Fallback auf 1 wenn alles andere fehlschlägt und Dosierung angegeben wurde
+                    if (finalDailyCount === 0 && formData.medInstructions && formData.medInstructions !== '0-0-0') {
+                        finalDailyCount = 1;
+                    }
+                    
+                    const localTotalUnits = finalDailyCount * (formData.travelDuration || 0);
+                    const localTotalSubstance = localTotalUnits * (formData.medConcentration || 0);
+                    const localEndDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
+                    
+                    console.log('📊 PDF Berechnungen:', {
+                        medDailyCount: formData.medDailyCount,
+                        doseMorning: formData.doseMorning,
+                        doseNoon: formData.doseNoon,
+                        doseEvening: formData.doseEvening,
+                        medInstructions: formData.medInstructions,
+                        finalDailyCount: finalDailyCount,
+                        travelDuration: formData.travelDuration,
+                        medConcentration: formData.medConcentration,
+                        totalUnits: localTotalUnits,
+                        totalSubstance: localTotalSubstance,
+                        endDate: localEndDate
+                    });
+                    
                     try {
                         const { jsPDF } = window.jspdf;
                         
@@ -2013,10 +2059,10 @@
                             formData.medTradeName,
                             `${formData.medSubstance} ${formData.medConcentration}mg`,
                             `Dosis: ${formData.medInstructions}`,
-                            `Menge: ${totalSubstance}mg`,
+                            `Menge: ${localTotalSubstance}mg`,
                             '',
                             'GUELTIG',
-                            `${formData.travelStartDate} - ${endDate}`,
+                            `${formData.travelStartDate} - ${localEndDate}`,
                             `${formData.travelDuration} Tage`,
                             '',
                             'ARZT',
@@ -2478,7 +2524,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(9);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today} - ${endDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
+                            doc.text(`${formData.travelStartDate || today} - ${localEndDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
                             
                             y += 24;
                             
@@ -2560,7 +2606,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(12);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${totalSubstance}mg ${formData.medSubstance || ''}`, margin + contentWidth / 4, y + 17, { align: 'center' });
+                            doc.text(`${localTotalSubstance}mg ${formData.medSubstance || ''}`, margin + contentWidth / 4, y + 17, { align: 'center' });
                             
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
@@ -2667,10 +2713,10 @@
                                 formData.medTradeName,
                                 `${formData.medSubstance} ${formData.medConcentration}mg`,
                                 `Dosis: ${formData.medInstructions}`,
-                                `Menge: ${totalSubstance}mg`,
+                                `Menge: ${localTotalSubstance}mg`,
                                 '',
                                 'GUELTIG',
-                                `${formData.travelStartDate} - ${endDate}`,
+                                `${formData.travelStartDate} - ${localEndDate}`,
                                 `${formData.travelDuration} Tage`,
                                 '',
                                 'ARZT',
@@ -3022,7 +3068,7 @@
                                 btmDoc.text(' - ', margin + 120, y + 13.5);
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${endDate}`, margin + 127, y + 13.5);
+                                btmDoc.text(`${localEndDate}`, margin + 127, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
@@ -3063,7 +3109,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${totalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
+                                btmDoc.text(`${localTotalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
                                 // Reichdauer
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
@@ -3104,7 +3150,7 @@
                                 btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${endDate}`, pageWidth - margin, 17, { align: 'right' });
+                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${localEndDate}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // SEKTION D - Behörde
                                 y = 28;
@@ -3574,7 +3620,7 @@
                                 btmDoc.text('VALIDITY', margin + 130, y + 5.5);
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(9);
-                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 130, y + 12);
+                                btmDoc.text(`${formData.travelStartDate} - ${localEndDate}`, margin + 130, y + 12);
                                 
                                 // SEKTION C - Medikamente
                                 y += 22;
@@ -3609,7 +3655,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(11);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${totalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
+                                btmDoc.text(`${localTotalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
                                 
                                 // Trennlinie
                                 btmDoc.setDrawColor(...gold);
@@ -3861,7 +3907,7 @@
                                             btmPdfBase64: btmPdfBase64,
                                             attestPdfBase64: attestPdfBase64,
                                             travelStartDate: formData.travelStartDate,
-                                            travelEndDate: endDate,
+                                            travelEndDate: localEndDate,
                                             destination: formData.destination,
                                             // Zahlungsinformationen für Buchhaltung
                                             paymentAmount: isAdminMode ? null : PRICES.bundle.toFixed(2),
