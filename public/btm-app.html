@@ -866,6 +866,272 @@
             );
         };
 
+        // Destination Search Komponente (Stadt/Land mit Autovervollständigung)
+        const DestinationSearch = ({ onSelect, currentDestination, isSchengen }) => {
+            const [query, setQuery] = useState('');
+            const [suggestions, setSuggestions] = useState([]);
+            const [isOpen, setIsOpen] = useState(false);
+            const inputRef = useRef(null);
+            
+            // Umfangreiche Liste von Destinationen (englische Namen)
+            const DESTINATIONS = [
+                // Schengen-Länder (Hauptstädte und wichtige Städte)
+                { city: 'Amsterdam', country: 'Netherlands', code: 'NL', schengen: true },
+                { city: 'Athens', country: 'Greece', code: 'GR', schengen: true },
+                { city: 'Barcelona', country: 'Spain', code: 'ES', schengen: true },
+                { city: 'Berlin', country: 'Germany', code: 'DE', schengen: true },
+                { city: 'Bern', country: 'Switzerland', code: 'CH', schengen: true },
+                { city: 'Brussels', country: 'Belgium', code: 'BE', schengen: true },
+                { city: 'Budapest', country: 'Hungary', code: 'HU', schengen: true },
+                { city: 'Copenhagen', country: 'Denmark', code: 'DK', schengen: true },
+                { city: 'Dublin', country: 'Ireland', code: 'IE', schengen: false },
+                { city: 'Florence', country: 'Italy', code: 'IT', schengen: true },
+                { city: 'Frankfurt', country: 'Germany', code: 'DE', schengen: true },
+                { city: 'Geneva', country: 'Switzerland', code: 'CH', schengen: true },
+                { city: 'Helsinki', country: 'Finland', code: 'FI', schengen: true },
+                { city: 'Lisbon', country: 'Portugal', code: 'PT', schengen: true },
+                { city: 'Ljubljana', country: 'Slovenia', code: 'SI', schengen: true },
+                { city: 'Luxembourg', country: 'Luxembourg', code: 'LU', schengen: true },
+                { city: 'Madrid', country: 'Spain', code: 'ES', schengen: true },
+                { city: 'Milan', country: 'Italy', code: 'IT', schengen: true },
+                { city: 'Monaco', country: 'Monaco', code: 'MC', schengen: true },
+                { city: 'Munich', country: 'Germany', code: 'DE', schengen: true },
+                { city: 'Nice', country: 'France', code: 'FR', schengen: true },
+                { city: 'Oslo', country: 'Norway', code: 'NO', schengen: true },
+                { city: 'Paris', country: 'France', code: 'FR', schengen: true },
+                { city: 'Prague', country: 'Czech Republic', code: 'CZ', schengen: true },
+                { city: 'Reykjavik', country: 'Iceland', code: 'IS', schengen: true },
+                { city: 'Riga', country: 'Latvia', code: 'LV', schengen: true },
+                { city: 'Rome', country: 'Italy', code: 'IT', schengen: true },
+                { city: 'Salzburg', country: 'Austria', code: 'AT', schengen: true },
+                { city: 'Stockholm', country: 'Sweden', code: 'SE', schengen: true },
+                { city: 'Tallinn', country: 'Estonia', code: 'EE', schengen: true },
+                { city: 'Venice', country: 'Italy', code: 'IT', schengen: true },
+                { city: 'Vienna', country: 'Austria', code: 'AT', schengen: true },
+                { city: 'Vilnius', country: 'Lithuania', code: 'LT', schengen: true },
+                { city: 'Warsaw', country: 'Poland', code: 'PL', schengen: true },
+                { city: 'Zurich', country: 'Switzerland', code: 'CH', schengen: true },
+                
+                // Non-Schengen Europa
+                { city: 'London', country: 'United Kingdom', code: 'GB', schengen: false },
+                { city: 'Manchester', country: 'United Kingdom', code: 'GB', schengen: false },
+                { city: 'Edinburgh', country: 'United Kingdom', code: 'GB', schengen: false },
+                { city: 'Sofia', country: 'Bulgaria', code: 'BG', schengen: false },
+                { city: 'Bucharest', country: 'Romania', code: 'RO', schengen: false },
+                { city: 'Zagreb', country: 'Croatia', code: 'HR', schengen: true },
+                { city: 'Belgrade', country: 'Serbia', code: 'RS', schengen: false },
+                { city: 'Kyiv', country: 'Ukraine', code: 'UA', schengen: false },
+                { city: 'Moscow', country: 'Russia', code: 'RU', schengen: false },
+                { city: 'Istanbul', country: 'Turkey', code: 'TR', schengen: false },
+                { city: 'Ankara', country: 'Turkey', code: 'TR', schengen: false },
+                
+                // Nordamerika
+                { city: 'New York', country: 'United States', code: 'US', schengen: false },
+                { city: 'Los Angeles', country: 'United States', code: 'US', schengen: false },
+                { city: 'Chicago', country: 'United States', code: 'US', schengen: false },
+                { city: 'San Francisco', country: 'United States', code: 'US', schengen: false },
+                { city: 'Miami', country: 'United States', code: 'US', schengen: false },
+                { city: 'Las Vegas', country: 'United States', code: 'US', schengen: false },
+                { city: 'Boston', country: 'United States', code: 'US', schengen: false },
+                { city: 'Washington D.C.', country: 'United States', code: 'US', schengen: false },
+                { city: 'Seattle', country: 'United States', code: 'US', schengen: false },
+                { city: 'Toronto', country: 'Canada', code: 'CA', schengen: false },
+                { city: 'Vancouver', country: 'Canada', code: 'CA', schengen: false },
+                { city: 'Montreal', country: 'Canada', code: 'CA', schengen: false },
+                { city: 'Mexico City', country: 'Mexico', code: 'MX', schengen: false },
+                { city: 'Cancun', country: 'Mexico', code: 'MX', schengen: false },
+                
+                // Asien
+                { city: 'Tokyo', country: 'Japan', code: 'JP', schengen: false },
+                { city: 'Osaka', country: 'Japan', code: 'JP', schengen: false },
+                { city: 'Kyoto', country: 'Japan', code: 'JP', schengen: false },
+                { city: 'Seoul', country: 'South Korea', code: 'KR', schengen: false },
+                { city: 'Beijing', country: 'China', code: 'CN', schengen: false },
+                { city: 'Shanghai', country: 'China', code: 'CN', schengen: false },
+                { city: 'Hong Kong', country: 'Hong Kong', code: 'HK', schengen: false },
+                { city: 'Singapore', country: 'Singapore', code: 'SG', schengen: false },
+                { city: 'Bangkok', country: 'Thailand', code: 'TH', schengen: false },
+                { city: 'Phuket', country: 'Thailand', code: 'TH', schengen: false },
+                { city: 'Chiang Mai', country: 'Thailand', code: 'TH', schengen: false },
+                { city: 'Hanoi', country: 'Vietnam', code: 'VN', schengen: false },
+                { city: 'Ho Chi Minh City', country: 'Vietnam', code: 'VN', schengen: false },
+                { city: 'Bali (Denpasar)', country: 'Indonesia', code: 'ID', schengen: false },
+                { city: 'Jakarta', country: 'Indonesia', code: 'ID', schengen: false },
+                { city: 'Kuala Lumpur', country: 'Malaysia', code: 'MY', schengen: false },
+                { city: 'Manila', country: 'Philippines', code: 'PH', schengen: false },
+                { city: 'Mumbai', country: 'India', code: 'IN', schengen: false },
+                { city: 'New Delhi', country: 'India', code: 'IN', schengen: false },
+                { city: 'Dubai', country: 'United Arab Emirates', code: 'AE', schengen: false },
+                { city: 'Abu Dhabi', country: 'United Arab Emirates', code: 'AE', schengen: false },
+                { city: 'Tel Aviv', country: 'Israel', code: 'IL', schengen: false },
+                { city: 'Jerusalem', country: 'Israel', code: 'IL', schengen: false },
+                { city: 'Doha', country: 'Qatar', code: 'QA', schengen: false },
+                
+                // Ozeanien
+                { city: 'Sydney', country: 'Australia', code: 'AU', schengen: false },
+                { city: 'Melbourne', country: 'Australia', code: 'AU', schengen: false },
+                { city: 'Brisbane', country: 'Australia', code: 'AU', schengen: false },
+                { city: 'Perth', country: 'Australia', code: 'AU', schengen: false },
+                { city: 'Auckland', country: 'New Zealand', code: 'NZ', schengen: false },
+                { city: 'Wellington', country: 'New Zealand', code: 'NZ', schengen: false },
+                
+                // Südamerika
+                { city: 'Rio de Janeiro', country: 'Brazil', code: 'BR', schengen: false },
+                { city: 'São Paulo', country: 'Brazil', code: 'BR', schengen: false },
+                { city: 'Buenos Aires', country: 'Argentina', code: 'AR', schengen: false },
+                { city: 'Lima', country: 'Peru', code: 'PE', schengen: false },
+                { city: 'Bogotá', country: 'Colombia', code: 'CO', schengen: false },
+                { city: 'Santiago', country: 'Chile', code: 'CL', schengen: false },
+                
+                // Afrika
+                { city: 'Cape Town', country: 'South Africa', code: 'ZA', schengen: false },
+                { city: 'Johannesburg', country: 'South Africa', code: 'ZA', schengen: false },
+                { city: 'Cairo', country: 'Egypt', code: 'EG', schengen: false },
+                { city: 'Marrakech', country: 'Morocco', code: 'MA', schengen: false },
+                { city: 'Casablanca', country: 'Morocco', code: 'MA', schengen: false },
+                { city: 'Nairobi', country: 'Kenya', code: 'KE', schengen: false },
+                { city: 'Tunis', country: 'Tunisia', code: 'TN', schengen: false },
+                
+                // Karibik
+                { city: 'Havana', country: 'Cuba', code: 'CU', schengen: false },
+                { city: 'Santo Domingo', country: 'Dominican Republic', code: 'DO', schengen: false },
+                { city: 'Kingston', country: 'Jamaica', code: 'JM', schengen: false },
+            ];
+            
+            // Suche durchführen
+            const searchDestinations = (searchQuery) => {
+                if (!searchQuery || searchQuery.length < 2) {
+                    setSuggestions([]);
+                    return;
+                }
+                
+                const q = searchQuery.toLowerCase();
+                const results = DESTINATIONS.filter(dest => {
+                    const cityMatch = dest.city.toLowerCase().includes(q);
+                    const countryMatch = dest.country.toLowerCase().includes(q);
+                    const codeMatch = dest.code.toLowerCase() === q;
+                    return cityMatch || countryMatch || codeMatch;
+                }).slice(0, 8);
+                
+                setSuggestions(results);
+                setIsOpen(results.length > 0);
+            };
+            
+            // Debounced Search
+            useEffect(() => {
+                const timer = setTimeout(() => searchDestinations(query), 150);
+                return () => clearTimeout(timer);
+            }, [query]);
+            
+            // Selection handler
+            const handleSelect = (dest) => {
+                const formatted = `${dest.city}, ${dest.country}`;
+                setQuery(formatted);
+                setIsOpen(false);
+                onSelect({
+                    city: dest.city,
+                    country: dest.country,
+                    code: dest.code,
+                    formatted: formatted,
+                    isSchengen: dest.schengen
+                });
+            };
+            
+            // Click outside handler
+            useEffect(() => {
+                const handleClickOutside = (e) => {
+                    if (inputRef.current && !inputRef.current.contains(e.target)) {
+                        setIsOpen(false);
+                    }
+                };
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+            
+            // Initialize with current value
+            useEffect(() => {
+                if (currentDestination?.formatted) {
+                    setQuery(currentDestination.formatted);
+                } else if (currentDestination?.city && currentDestination?.country) {
+                    setQuery(`${currentDestination.city}, ${currentDestination.country}`);
+                }
+            }, [currentDestination]);
+            
+            return (
+                <div className="relative" ref={inputRef}>
+                    <div className="flex items-center gap-2 text-xs font-bold text-sky-700 mb-2">
+                        <Icons.MapPin className="h-4 w-4" />
+                        Travel Destination / Reiseziel
+                    </div>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => {
+                                setQuery(e.target.value);
+                                setIsOpen(true);
+                            }}
+                            onFocus={() => query.length >= 2 && setIsOpen(true)}
+                            placeholder="Search city or country... (e.g. Bangkok, Thailand)"
+                            className="w-full px-4 py-3.5 pl-10 rounded-xl border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400"
+                        />
+                        <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        {query && (
+                            <button
+                                onClick={() => {
+                                    setQuery('');
+                                    setSuggestions([]);
+                                    onSelect({ city: '', country: '', formatted: '', isSchengen: null });
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full"
+                            >
+                                <Icons.X className="h-4 w-4 text-slate-400" />
+                            </button>
+                        )}
+                    </div>
+                    
+                    {/* Suggestions Dropdown */}
+                    {isOpen && suggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl border border-slate-200 shadow-xl max-h-64 overflow-y-auto animate-slide-down">
+                            {suggestions.map((dest, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleSelect(dest)}
+                                    className="w-full px-4 py-3 text-left hover:bg-sky-50 flex items-center justify-between border-b border-slate-100 last:border-0 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center text-xs font-bold text-sky-700">
+                                            {dest.code}
+                                        </div>
+                                        <div>
+                                            <div className="font-medium text-slate-800">{dest.city}</div>
+                                            <div className="text-xs text-slate-500">{dest.country}</div>
+                                        </div>
+                                    </div>
+                                    <div className={`text-xs px-2 py-1 rounded-full ${dest.schengen ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        {dest.schengen ? 'Schengen' : 'Non-Schengen'}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {/* Current Selection */}
+                    {currentDestination?.formatted && (
+                        <div className="mt-2 flex items-center gap-2">
+                            <Icons.CheckCircle className="h-4 w-4 text-emerald-500" />
+                            <span className="text-sm text-emerald-700 font-medium">{currentDestination.formatted}</span>
+                            {currentDestination.isSchengen !== null && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${currentDestination.isSchengen ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                                    {currentDestination.isSchengen ? 'Schengen' : 'Non-Schengen'}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         // Address Autocomplete Komponente (mit Modal & Karte)
         const AddressInput = ({ value, onChange }) => {
             const [suggestions, setSuggestions] = useState([]);
@@ -3968,18 +4234,30 @@
                                         </div>
                                     </div>
                                 </div>
-                                {formData.countryType === 'non-schengen' && (
-                                    <div className="mt-4 sm:mt-6 animate-slide-down grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Zielstadt</label>
-                                            <input type="text" name="destinationCity" value={formData.destinationCity || ''} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="z.B. Bangkok, New York, Tokyo..." />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Zielland</label>
-                                            <input type="text" name="destination" value={formData.destination} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="z.B. Thailand, USA, Japan..." />
-                                        </div>
-                                    </div>
-                                )}
+                                
+                                {/* Destination Search - für alle Reisearten */}
+                                <div className="mt-4 sm:mt-6 animate-slide-down">
+                                    <DestinationSearch 
+                                        onSelect={(dest) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                destinationCity: dest.city || '',
+                                                destination: dest.country || '',
+                                                // Automatisch den Reisetyp anpassen basierend auf Schengen-Status
+                                                countryType: dest.isSchengen === true ? 'schengen' : dest.isSchengen === false ? 'non-schengen' : prev.countryType
+                                            }));
+                                        }}
+                                        currentDestination={{
+                                            city: formData.destinationCity,
+                                            country: formData.destination,
+                                            formatted: formData.destinationCity && formData.destination 
+                                                ? `${formData.destinationCity}, ${formData.destination}` 
+                                                : formData.destination || '',
+                                            isSchengen: formData.countryType === 'schengen'
+                                        }}
+                                        isSchengen={formData.countryType === 'schengen'}
+                                    />
+                                </div>
                                 
                                 {/* Gesundheitsamt-Suche für alle Reisen */}
                                 <div className="mt-6 animate-slide-down">
