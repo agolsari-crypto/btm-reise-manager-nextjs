@@ -1676,6 +1676,26 @@
                                 // Verifiziere die Zahlung serverseitig
                                 const verifyAndGeneratePDF = async () => {
                                     setLoading(true);
+                                    
+                                    // WICHTIG: Warte auf Assets von Server
+                                    let loadedAssets = {};
+                                    try {
+                                        const assetsResponse = await fetch('/assets-config.json');
+                                        if (assetsResponse.ok) {
+                                            const assetsConfig = await assetsResponse.json();
+                                            if (assetsConfig.doctorAssets) {
+                                                loadedAssets = assetsConfig.doctorAssets;
+                                                setDoctorAssets(assetsConfig.doctorAssets);
+                                                console.log('✅ Assets für PDF geladen:', Object.keys(loadedAssets));
+                                            }
+                                            if (assetsConfig.logo) {
+                                                setLogo(assetsConfig.logo);
+                                            }
+                                        }
+                                    } catch (assetErr) {
+                                        console.log('⚠️ Assets konnten nicht geladen werden:', assetErr);
+                                    }
+                                    
                                     try {
                                         const response = await fetch('/api/stripe/verify-session', {
                                             method: 'POST',
@@ -1702,12 +1722,13 @@
                                             sessionStorage.setItem('payment_verified', 'true');
                                             setSuccess(true);
                                             
-                                            // PDF DIREKT generieren mit gespeicherten Daten
+                                            // PDF generieren mit Assets (kleine Verzögerung für State-Update)
                                             setTimeout(() => {
                                                 console.log('📄 Generating PDF after verified payment...');
                                                 console.log('📋 Using saved form data:', savedFormData);
+                                                console.log('🖊️ Using doctor assets:', Object.keys(loadedAssets));
                                                 generatePDF('bundle', savedFormData);
-                                            }, 800);
+                                            }, 500);
                                         } else {
                                             console.error('❌ Zahlung nicht verifiziert:', result.error);
                                             alert('Die Zahlung konnte nicht verifiziert werden. Bitte kontaktieren Sie uns unter info@nevpaz.de');
