@@ -2710,59 +2710,59 @@
                                 btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                btmDoc.text(`Gültig: ${formData.travelStartDate} - ${endDate}`, pageWidth - margin, 17, { align: 'right' });
+                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${endDate}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // SEKTION D - Behörde
                                 y = 28;
                                 y = drawPremiumSection('D', 'Für die Beglaubigung zuständige Behörde', 'Competent Authority for Authentication', y);
                                 
-                                // Feld: Bezeichnung der Behörde
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6.5);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('BEZEICHNUNG DER BEHÖRDE', margin, y + 3);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5.5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Name of Authority', margin, y + 7);
+                                // Kompakte Box für Behördendaten
+                                const authorityBoxHeight = 32;
                                 btmDoc.setFillColor(...paperWhite);
-                                btmDoc.roundedRect(margin, y + 10, contentWidth, 20, 2, 2, 'F');
+                                btmDoc.roundedRect(margin, y, contentWidth, authorityBoxHeight, 2, 2, 'F');
                                 btmDoc.setDrawColor(...silver);
                                 btmDoc.setLineWidth(0.4);
-                                btmDoc.roundedRect(margin, y + 10, contentWidth, 20, 2, 2, 'S');
-                                // Behördenname einfügen wenn vorhanden
-                                if (formData.healthAuthorityName) {
-                                    btmDoc.setFont('helvetica', 'normal');
-                                    btmDoc.setFontSize(9);
-                                    btmDoc.setTextColor(...charcoal);
-                                    btmDoc.text(formData.healthAuthorityName, margin + 4, y + 20);
-                                }
-                                y += 38;
+                                btmDoc.roundedRect(margin, y, contentWidth, authorityBoxHeight, 2, 2, 'S');
                                 
-                                // Feld: Anschrift der Behörde
+                                // Behördendaten einfügen
+                                const authX = margin + 5;
+                                let authY = y + 6;
+                                
+                                // Name der Behörde
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6.5);
+                                btmDoc.setFontSize(9);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('ANSCHRIFT DER BEHÖRDE', margin, y + 3);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5.5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Address of Authority', margin, y + 7);
-                                btmDoc.setFillColor(...paperWhite);
-                                btmDoc.roundedRect(margin, y + 10, contentWidth, 28, 2, 2, 'F');
-                                btmDoc.setDrawColor(...silver);
-                                btmDoc.roundedRect(margin, y + 10, contentWidth, 28, 2, 2, 'S');
-                                // Behördenadresse einfügen wenn vorhanden
-                                if (formData.healthAuthorityAddress) {
-                                    btmDoc.setFont('helvetica', 'normal');
-                                    btmDoc.setFontSize(8);
-                                    btmDoc.setTextColor(...charcoal);
-                                    const addressLines = btmDoc.splitTextToSize(formData.healthAuthorityAddress, contentWidth - 8);
-                                    btmDoc.text(addressLines, margin + 4, y + 18);
-                                }
-                                y += 46;
+                                btmDoc.text(formData.healthAuthorityName || '________________________________________', authX, authY);
+                                authY += 5;
                                 
-                                // Feld: Datum, Unterschrift und Dienstsiegel
+                                // Adresse
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(7.5);
+                                btmDoc.setTextColor(...charcoal);
+                                btmDoc.text(formData.healthAuthorityAddress || '________________________________________', authX, authY);
+                                authY += 5;
+                                
+                                // Kontaktdaten in einer Zeile
+                                const contactParts = [];
+                                if (formData.healthAuthorityPhone) contactParts.push(`Tel: ${formData.healthAuthorityPhone}`);
+                                if (formData.healthAuthorityEmail) contactParts.push(`Email: ${formData.healthAuthorityEmail}`);
+                                if (formData.healthAuthorityFax) contactParts.push(`Fax: ${formData.healthAuthorityFax}`);
+                                
+                                if (contactParts.length > 0) {
+                                    btmDoc.setFontSize(6.5);
+                                    btmDoc.setTextColor(...textGray);
+                                    btmDoc.text(contactParts.join('  |  '), authX, authY);
+                                }
+                                
+                                // Labels rechts
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Name of Authority / Address / Contact', pageWidth - margin - 5, y + 6, { align: 'right' });
+                                
+                                y += authorityBoxHeight + 6;
+                                
+                                // Feld: Datum, Unterschrift und Dienstsiegel (kompakter)
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6.5);
                                 btmDoc.setTextColor(...navy);
@@ -2772,52 +2772,93 @@
                                 btmDoc.setTextColor(...silver);
                                 btmDoc.text('Date, Signature and Official Seal', margin, y + 7);
                                 btmDoc.setFillColor(...paperWhite);
-                                btmDoc.roundedRect(margin, y + 10, contentWidth, 45, 2, 2, 'F');
+                                btmDoc.roundedRect(margin, y + 10, contentWidth, 32, 2, 2, 'F');
                                 btmDoc.setDrawColor(...silver);
-                                btmDoc.roundedRect(margin, y + 10, contentWidth, 45, 2, 2, 'S');
+                                btmDoc.roundedRect(margin, y + 10, contentWidth, 32, 2, 2, 'S');
+                                
+                                y += 50;
+                                
+                                // Legal Notice Box (English)
+                                btmDoc.setFillColor(248, 250, 252);
+                                btmDoc.roundedRect(margin, y, contentWidth, 48, 2, 2, 'F');
+                                btmDoc.setDrawColor(...navy);
+                                btmDoc.setLineWidth(0.3);
+                                btmDoc.roundedRect(margin, y, contentWidth, 48, 2, 2, 'S');
+                                
+                                // Header
+                                btmDoc.setFillColor(...navy);
+                                btmDoc.roundedRect(margin, y, contentWidth, 8, 2, 2, 'F');
+                                btmDoc.rect(margin, y + 4, contentWidth, 4, 'F');
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(255, 255, 255);
+                                btmDoc.text('LEGAL NOTICE & REGULATORY INFORMATION', margin + contentWidth / 2, y + 5.5, { align: 'center' });
+                                
+                                // Legal Text
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(5.5);
+                                btmDoc.setTextColor(...charcoal);
+                                const legalText = [
+                                    'This certificate is issued pursuant to Article 75 of the Schengen Convention and the German Narcotics Act (BtMG).',
+                                    'The bearer is authorized to carry the prescribed controlled substance(s) for personal medical use during international travel.',
+                                    'This document must be authenticated by the competent health authority before travel. The certificate is valid only for the',
+                                    'specified travel period and medication quantity. Unauthorized reproduction or alteration of this document is prohibited.',
+                                    'Border control and customs authorities are kindly requested to permit passage with the declared medication.'
+                                ];
+                                let textY = y + 14;
+                                legalText.forEach(line => {
+                                    btmDoc.text(line, margin + 4, textY);
+                                    textY += 4;
+                                });
+                                
+                                // Reference
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Ref: BfArM 017 (12.2000) | Article 75 Schengen Implementation Agreement | §4 BtMVV', margin + 4, y + 44);
+                                
+                                y += 54;
                                 
                                 // Wichtiger Hinweis Box (links) + QR-Code (rechts daneben)
-                                y += 65;
                                 const qrBoxWidth = 48;
-                                const hinweisWidth = contentWidth - qrBoxWidth - 4; // 4mm Abstand
+                                const hinweisWidth = contentWidth - qrBoxWidth - 4;
                                 
                                 // Hinweis-Box (links)
                                 btmDoc.setFillColor(255, 250, 242);
-                                btmDoc.roundedRect(margin, y, hinweisWidth, 58, 2, 2, 'F');
+                                btmDoc.roundedRect(margin, y, hinweisWidth, 50, 2, 2, 'F');
                                 btmDoc.setDrawColor(...gold);
                                 btmDoc.setLineWidth(0.6);
-                                btmDoc.roundedRect(margin, y, hinweisWidth, 58, 2, 2, 'S');
+                                btmDoc.roundedRect(margin, y, hinweisWidth, 50, 2, 2, 'S');
                                 btmDoc.setFillColor(...gold);
-                                btmDoc.circle(margin + 9, y + 12, 4, 'F');
+                                btmDoc.circle(margin + 9, y + 10, 4, 'F');
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(255, 255, 255);
-                                btmDoc.text('!', margin + 9, y + 14, { align: 'center' });
+                                btmDoc.text('!', margin + 9, y + 12, { align: 'center' });
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('Wichtiger Hinweis / Important Notice', margin + 18, y + 8);
+                                btmDoc.text('Important Notice', margin + 18, y + 8);
                                 btmDoc.setFont('helvetica', 'normal');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...charcoal);
-                                btmDoc.text('Diese Bescheinigung ist nur gültig mit der Beglaubigung', margin + 18, y + 16);
-                                btmDoc.text('durch die zuständige Gesundheitsbehörde.', margin + 18, y + 22);
-                                btmDoc.setFontSize(5.5);
-                                btmDoc.text('This certificate is only valid with authentication by', margin + 18, y + 30);
-                                btmDoc.text('the competent health authority.', margin + 18, y + 35);
-                                // Scan-Hinweis in der Hinweis-Box
+                                btmDoc.text('This certificate requires authentication by the', margin + 18, y + 15);
+                                btmDoc.text('competent health authority before travel.', margin + 18, y + 20);
+                                btmDoc.text('Present this document at border control if requested.', margin + 18, y + 27);
+                                
+                                // Scan-Hinweis
                                 btmDoc.setFillColor(...lightBlue);
-                                btmDoc.roundedRect(margin + 4, y + 42, hinweisWidth - 8, 12, 1.5, 1.5, 'F');
+                                btmDoc.roundedRect(margin + 4, y + 35, hinweisWidth - 8, 11, 1.5, 1.5, 'F');
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(5.5);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('QR-Code scannen für digitale Wallet-Karte', margin + hinweisWidth / 2, y + 49, { align: 'center' });
+                                btmDoc.text('Scan QR code for digital wallet card', margin + hinweisWidth / 2, y + 42, { align: 'center' });
                                 
                                 // QR-Code Box (rechts) - Wallet Design
                                 const qrX = margin + hinweisWidth + 4;
                                 const qrY = y;
                                 const qrSize = qrBoxWidth;
-                                const qrBoxHeight = 58;
+                                const qrBoxHeight = 50;
                                 
                                 // Subtiler Schatten
                                 btmDoc.setFillColor(210, 218, 230);
@@ -2884,65 +2925,499 @@
                                 
                                 drawPremiumFooter(2);
                             } else {
-                                drawLetterhead(false); let contentX = 75; let y = 50;
-                                btmDoc.setFontSize(10); btmDoc.setFont('helvetica', 'normal'); btmDoc.setTextColor(0, 0, 0);
-                                const today = formatDate(new Date().toISOString().split('T')[0], 'de-DE');
-                                btmDoc.text(`Hamburg, den ${today}`, pageWidth - 20, y, { align: 'right' }); y += 20;
-                                btmDoc.setFontSize(14); btmDoc.setFont('helvetica', 'bold'); btmDoc.setTextColor(30, 58, 138);
-                                btmDoc.text('Ärztliche Bescheinigung für Reisen (Nicht-Schengen)', contentX, y); y += 6;
-                                btmDoc.setFontSize(11); btmDoc.setFont('helvetica', 'italic'); btmDoc.setTextColor(100, 116, 139);
-                                btmDoc.text('Medical Certificate for travelling (Non-Schengen area)', contentX, y); y += 20;
-                                const lineH = 7; btmDoc.setTextColor(0, 0, 0); btmDoc.setFont('helvetica', 'bold'); btmDoc.setFontSize(10);
-                                btmDoc.text('A. Country and place of issue', contentX, y); y += lineH;
-                                btmDoc.setFont('helvetica', 'normal'); btmDoc.text(`Germany / Hamburg / ${today}`, contentX, y); y += lineH;
-                                btmDoc.text(`Validity: ${formData.travelStartDate} - ${endDate}`, contentX, y); y += lineH * 1.5;
-                                btmDoc.setFont('helvetica', 'bold'); btmDoc.text('B. Prescribing physician', contentX, y); y += lineH;
-                                btmDoc.setFont('helvetica', 'normal'); btmDoc.text(`${doctor.name}, ${doctor.firstName}`, contentX, y); y += lineH;
-                                btmDoc.text(`Phone: ${doctor.phone}`, contentX, y);
-                                if (docAssets.stamp) tryAddImageBtm(docAssets.stamp, contentX + 60, y - 10, 40, 16); y += lineH * 1.5;
-                                btmDoc.setFont('helvetica', 'bold'); btmDoc.text('C. Patient', contentX, y); y += lineH;
-                                btmDoc.setFont('helvetica', 'normal'); btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, contentX, y); y += lineH;
-                                btmDoc.text(`Passport: ${formData.patPassport}, DOB: ${formData.patDob}`, contentX, y); y += lineH;
-                                btmDoc.text(`Address: ${formData.patAddress}`, contentX, y); y += lineH;
-                                btmDoc.text(`Destination: ${formData.destination}`, contentX, y); y += lineH * 1.5;
-                                btmDoc.setFontSize(8); btmDoc.setTextColor(150, 150, 150);
-                                btmDoc.text('(Fortsetzung auf Seite 2 / Continued on page 2)', contentX, pageHeight - 20);
-
-                                btmDoc.addPage();
-                                if (logo) { const baseW = 60; const scale = logoScale / 100; tryAddImageBtm(logo, 195 - (baseW * scale), 15, baseW * scale, 25 * scale); }
-                                drawFooter(); y = 50;
-                                btmDoc.setTextColor(0, 0, 0); btmDoc.setFontSize(10); btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.text('D. Prescribed medical preparation', contentX, y); y += lineH;
-                                btmDoc.setFont('helvetica', 'normal'); btmDoc.text(`Trade name: ${formData.medTradeName}`, contentX, y); y += lineH;
-                                btmDoc.text(`Active substance: ${formData.medSubstance}`, contentX, y); y += lineH;
-                                btmDoc.text(`Total: ${totalSubstance} mg (${totalUnits} units)`, contentX, y); y += lineH;
-                                btmDoc.text(`Dosage: ${formData.medInstructions}`, contentX, y); y += lineH;
-                                btmDoc.text(`Duration: ${formData.travelDuration} days`, contentX, y); y += lineH * 3;
-                                btmDoc.setDrawColor(30, 58, 138); btmDoc.line(contentX, y, pageWidth - 20, y);
-                                if (docAssets.signature) tryAddImageBtm(docAssets.signature, contentX + 10, y - 18, 50, 12);
-                                btmDoc.setFontSize(8); btmDoc.setTextColor(100, 116, 139);
-                                btmDoc.text('Datum, Unterschrift & Stempel des Arztes', contentX, y + 5); y += 25;
-                                btmDoc.setTextColor(0, 0, 0); btmDoc.setFontSize(10); btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.text('E. Issuing authority / Autorité émettrice', contentX, y); y += lineH * 2;
-                                btmDoc.setDrawColor(200, 200, 200); btmDoc.setLineWidth(0.1); btmDoc.setFontSize(8); btmDoc.setTextColor(150, 150, 150);
-                                // Gesundheitsamt eintragen falls vorhanden
-                                if (formData.healthAuthorityName) {
-                                    btmDoc.setTextColor(30, 41, 59);
-                                    btmDoc.setFont('helvetica', 'normal');
-                                    btmDoc.setFontSize(10);
-                                    btmDoc.text(formData.healthAuthorityName, contentX, y - 2);
-                                    btmDoc.setFontSize(8); btmDoc.setTextColor(150, 150, 150);
+                                // ========== NON-SCHENGEN PREMIUM DESIGN ==========
+                                // Gleiche Premium-Optik wie Schengen, aber ohne Logo und mit Reiseziel
+                                
+                                const navy = [15, 35, 70];
+                                const gold = [180, 142, 87];
+                                const goldLight = [200, 170, 120];
+                                const lightBlue = [235, 242, 250];
+                                const charcoal = [30, 41, 59];
+                                const silver = [148, 163, 184];
+                                const white = [255, 255, 255];
+                                const paperWhite = [252, 253, 255];
+                                const textGray = [100, 116, 139];
+                                
+                                const pageWidth = btmDoc.internal.pageSize.getWidth();
+                                const pageHeight = btmDoc.internal.pageSize.getHeight();
+                                const margin = 15;
+                                const contentWidth = pageWidth - 2 * margin;
+                                
+                                // Watermark
+                                btmDoc.setFillColor(250, 251, 253);
+                                btmDoc.rect(0, 0, pageWidth, pageHeight, 'F');
+                                btmDoc.setFillColor(245, 248, 252);
+                                for (let i = 0; i < 8; i++) {
+                                    btmDoc.circle(pageWidth * (0.1 + i * 0.12), 15 + i * 35, 25 + i * 5, 'F');
                                 }
-                                btmDoc.line(contentX, y, pageWidth - 20, y); btmDoc.text('Name of authority', contentX, y + 3); y += 15;
-                                if (formData.healthAuthorityAddress) {
-                                    btmDoc.setTextColor(30, 41, 59);
+                                
+                                // Premium Header
+                                btmDoc.setFillColor(...navy);
+                                btmDoc.rect(0, 0, pageWidth, 6, 'F');
+                                btmDoc.setFillColor(...gold);
+                                btmDoc.rect(0, 6, pageWidth, 1.5, 'F');
+                                
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(14);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('PRIVATPRAXIS NEVPAZ', margin, 18);
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(8);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', margin, 23);
+                                btmDoc.setFontSize(7);
+                                btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', margin, 27);
+                                btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', margin, 31);
+                                
+                                // Document Info Box (rechts oben) - OHNE LOGO
+                                const infoBoxX = pageWidth - margin - 40;
+                                btmDoc.setFillColor(...lightBlue);
+                                btmDoc.roundedRect(infoBoxX, 12, 40, 24, 2, 2, 'F');
+                                btmDoc.setDrawColor(...navy);
+                                btmDoc.setLineWidth(0.3);
+                                btmDoc.roundedRect(infoBoxX, 12, 40, 24, 2, 2, 'S');
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('MEDICAL', infoBoxX + 20, 18, { align: 'center' });
+                                btmDoc.text('CERTIFICATE', infoBoxX + 20, 22, { align: 'center' });
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text(`Dok-Nr: ${btmDocId}`, infoBoxX + 20, 28, { align: 'center' });
+                                btmDoc.text(`${btmIssuedDate}`, infoBoxX + 20, 32, { align: 'center' });
+                                
+                                // Titel
+                                let y = 44;
+                                btmDoc.setDrawColor(...gold);
+                                btmDoc.setLineWidth(0.5);
+                                btmDoc.line(margin + 30, y - 2, pageWidth - margin - 30, y - 2);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(13);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('Medical Certificate for International Travel', pageWidth / 2, y + 5, { align: 'center' });
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(8);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Ärztliche Bescheinigung für Auslandsreisen (Non-Schengen)', pageWidth / 2, y + 11, { align: 'center' });
+                                btmDoc.setDrawColor(...gold);
+                                btmDoc.line(margin + 30, y + 15, pageWidth - margin - 30, y + 15);
+                                
+                                // Premium Section Helper
+                                const drawNonSchengenSection = (letter, titleDE, titleEN, yPos) => {
+                                    btmDoc.setFillColor(...navy);
+                                    btmDoc.roundedRect(margin, yPos, contentWidth, 10, 1.5, 1.5, 'F');
+                                    btmDoc.setFillColor(...gold);
+                                    btmDoc.circle(margin + 8, yPos + 5, 5, 'F');
+                                    btmDoc.setFont('helvetica', 'bold');
+                                    btmDoc.setFontSize(10);
+                                    btmDoc.setTextColor(...navy);
+                                    btmDoc.text(letter, margin + 8, yPos + 7, { align: 'center' });
+                                    btmDoc.setFontSize(8);
+                                    btmDoc.setTextColor(...white);
+                                    btmDoc.text(titleDE, margin + 18, yPos + 5);
+                                    btmDoc.setFont('helvetica', 'italic');
+                                    btmDoc.setFontSize(6);
+                                    btmDoc.setTextColor(...goldLight);
+                                    btmDoc.text(titleEN, margin + 18, yPos + 8.5);
+                                    return yPos + 14;
+                                };
+                                
+                                // Premium Field Helper
+                                const drawNonSchengenField = (labelDE, labelEN, value, x, yPos, width = 75) => {
+                                    btmDoc.setFont('helvetica', 'bold');
+                                    btmDoc.setFontSize(6);
+                                    btmDoc.setTextColor(...navy);
+                                    btmDoc.text(labelDE.toUpperCase(), x, yPos);
+                                    btmDoc.setFont('helvetica', 'italic');
+                                    btmDoc.setFontSize(5);
+                                    btmDoc.setTextColor(...silver);
+                                    btmDoc.text(labelEN, x, yPos + 3);
                                     btmDoc.setFont('helvetica', 'normal');
                                     btmDoc.setFontSize(9);
-                                    btmDoc.text(formData.healthAuthorityAddress, contentX, y - 2);
-                                    btmDoc.setFontSize(8); btmDoc.setTextColor(150, 150, 150);
+                                    btmDoc.setTextColor(...charcoal);
+                                    btmDoc.text(value || '', x, yPos + 8);
+                                };
+                                
+                                // Signatur Box Helper
+                                const drawNonSchengenSignature = (x, yPos, width = 55, height = 30) => {
+                                    btmDoc.setFillColor(220, 225, 235);
+                                    btmDoc.roundedRect(x + 1.5, yPos + 1.5, width, height, 2, 2, 'F');
+                                    btmDoc.setFillColor(...white);
+                                    btmDoc.roundedRect(x, yPos, width, height, 2, 2, 'F');
+                                    btmDoc.setDrawColor(...navy);
+                                    btmDoc.setLineWidth(0.8);
+                                    btmDoc.roundedRect(x, yPos, width, height, 2, 2, 'S');
+                                    btmDoc.setFillColor(...gold);
+                                    btmDoc.rect(x + 3, yPos + 2, width - 6, 0.8, 'F');
+                                    btmDoc.setFillColor(250, 251, 255);
+                                    btmDoc.roundedRect(x + 3, yPos + 5, width - 6, height - 13, 1.5, 1.5, 'F');
+                                    btmDoc.setDrawColor(...gold);
+                                    btmDoc.setLineWidth(0.3);
+                                    btmDoc.roundedRect(x + 3, yPos + 5, width - 6, height - 13, 1.5, 1.5, 'S');
+                                    
+                                    if (docAssets.signature && docAssets.stamp) {
+                                        tryAddImageBtm(docAssets.signature, x + 4, yPos + 5, 23, 15);
+                                        tryAddImageBtm(docAssets.stamp, x + 28, yPos + 4, 23, 17);
+                                    } else if (docAssets.signature) {
+                                        tryAddImageBtm(docAssets.signature, x + (width - 30) / 2, yPos + 5, 30, 15);
+                                    } else if (docAssets.stamp) {
+                                        tryAddImageBtm(docAssets.stamp, x + (width - 30) / 2, yPos + 4, 30, 17);
+                                    } else {
+                                        btmDoc.setFont('helvetica', 'bold');
+                                        btmDoc.setFontSize(12);
+                                        btmDoc.setTextColor(...navy);
+                                        btmDoc.text('Dr. A. Golsari', x + width / 2, yPos + 11, { align: 'center' });
+                                        btmDoc.setFont('helvetica', 'italic');
+                                        btmDoc.setFontSize(6);
+                                        btmDoc.setTextColor(...silver);
+                                        btmDoc.text('Digital signiert', x + width / 2, yPos + 16, { align: 'center' });
+                                    }
+                                    
+                                    btmDoc.setFillColor(...lightBlue);
+                                    btmDoc.roundedRect(x + 2, yPos + height - 8, width - 4, 6, 1, 1, 'F');
+                                    btmDoc.setFont('helvetica', 'bold');
+                                    btmDoc.setFontSize(5);
+                                    btmDoc.setTextColor(...navy);
+                                    btmDoc.text('STAMP & SIGNATURE', x + width / 2, yPos + height - 5, { align: 'center' });
+                                    btmDoc.setFont('helvetica', 'italic');
+                                    btmDoc.setFontSize(4);
+                                    btmDoc.setTextColor(...silver);
+                                    btmDoc.text('Stempel & Unterschrift', x + width / 2, yPos + height - 2, { align: 'center' });
+                                    
+                                    btmDoc.setFillColor(...navy);
+                                    btmDoc.roundedRect(x + width - 24, yPos - 3, 25, 6, 1.5, 1.5, 'F');
+                                    btmDoc.setFillColor(...gold);
+                                    btmDoc.rect(x + width - 23.5, yPos - 2.5, 24, 0.5, 'F');
+                                    btmDoc.setFont('helvetica', 'bold');
+                                    btmDoc.setFontSize(4.5);
+                                    btmDoc.setTextColor(255, 255, 255);
+                                    btmDoc.text('DIGITALLY SIGNED', x + width - 11.5, yPos + 0.5, { align: 'center' });
+                                };
+                                
+                                // SEKTION A - Arzt
+                                y = 62;
+                                y = drawNonSchengenSection('A', 'Verschreibender Arzt', 'Prescribing Physician', y);
+                                drawNonSchengenField('Name', 'Surname', `${doctor.title} ${doctor.lastName}`, margin, y);
+                                drawNonSchengenField('Vorname', 'First Name', doctor.firstName, margin + 80, y);
+                                drawNonSchengenSignature(pageWidth - margin - 58, y + 2);
+                                y += 12;
+                                drawNonSchengenField('Praxisanschrift', 'Practice Address', 'Privatpraxis NEVPAZ GmbH, Dammtorwall 7a, 20354 Hamburg', margin, y);
+                                y += 12;
+                                drawNonSchengenField('Telefon', 'Phone', '+49 40 238353790', margin, y);
+                                drawNonSchengenField('E-Mail', '', 'info@nevpaz.de', margin + 45, y);
+                                drawNonSchengenField('Internet', '', 'www.nevpaz.de', margin + 85, y);
+                                
+                                // SEKTION B - Patient
+                                y += 14;
+                                y = drawNonSchengenSection('B', 'Patient', 'Patient Details', y);
+                                drawNonSchengenField('Nachname', 'Surname', formData.patName, margin, y);
+                                drawNonSchengenField('Vorname', 'First Name', formData.patFirstName, margin + 80, y);
+                                y += 12;
+                                drawNonSchengenField('Pass/Ausweis-Nr.', 'ID Number', formData.patPassport, margin, y);
+                                drawNonSchengenField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
+                                y += 12;
+                                drawNonSchengenField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
+                                drawNonSchengenField('Geschlecht', 'Sex', formData.patGender === 'male' ? 'Männlich (Male)' : formData.patGender === 'female' ? 'Weiblich (Female)' : 'Divers (Diverse)', margin + 80, y);
+                                y += 12;
+                                drawNonSchengenField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
+                                drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 55, y);
+                                
+                                // REISEZIEL BOX (Neu für Non-Schengen)
+                                y += 14;
+                                btmDoc.setFillColor(...lightBlue);
+                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
+                                btmDoc.setDrawColor(...navy);
+                                btmDoc.setLineWidth(0.5);
+                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
+                                
+                                btmDoc.setFillColor(...gold);
+                                btmDoc.rect(margin, y, 4, 16, 'F');
+                                
+                                // Reisedauer links
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('REISEZIEL / DESTINATION', margin + 8, y + 5.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(11);
+                                btmDoc.text(formData.destination || 'Not specified', margin + 8, y + 12);
+                                
+                                // Trennlinie
+                                btmDoc.setDrawColor(...gold);
+                                btmDoc.setLineWidth(0.8);
+                                btmDoc.line(margin + 85, y + 2, margin + 85, y + 14);
+                                
+                                // Reisedauer
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('REISEDAUER', margin + 90, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Travel Duration', margin + 90, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(10);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelDuration} Days`, margin + 90, y + 13.5);
+                                
+                                // Gültigkeitszeitraum
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.text('VALIDITY', margin + 130, y + 5.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(9);
+                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 130, y + 12);
+                                
+                                // SEKTION C - Medikamente
+                                y += 22;
+                                y = drawNonSchengenSection('C', 'Verschriebenes Arzneimittel', 'Prescribed Medication', y);
+                                drawNonSchengenField('Handelsname', 'Trade Name', formData.medTradeName, margin, y);
+                                drawNonSchengenField('Darreichungsform', 'Dosage Form', formData.medDosageForm, margin + 85, y);
+                                y += 12;
+                                drawNonSchengenField('Wirkstoff', 'Active Substance', formData.medSubstance, margin, y);
+                                drawNonSchengenField('Konzentration', 'Concentration', `${formData.medConcentration} mg`, margin + 85, y);
+                                y += 12;
+                                drawNonSchengenField('Gebrauchsanweisung', 'Dosage Instructions', formData.medInstructions, margin, y);
+                                
+                                // Gesamtmenge Box
+                                y += 14;
+                                btmDoc.setFillColor(...lightBlue);
+                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
+                                btmDoc.setDrawColor(...navy);
+                                btmDoc.setLineWidth(0.5);
+                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
+                                btmDoc.setFillColor(...gold);
+                                btmDoc.rect(margin, y, 4, 16, 'F');
+                                
+                                // Gesamtmenge
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('GESAMTMENGE', margin + 8, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Total Amount', margin + 8, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(11);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${totalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
+                                
+                                // Trennlinie
+                                btmDoc.setDrawColor(...gold);
+                                btmDoc.setLineWidth(0.8);
+                                btmDoc.line(margin + contentWidth / 2, y + 2, margin + contentWidth / 2, y + 14);
+                                
+                                // Reichdauer
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('REICHDAUER', margin + contentWidth / 2 + 5, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Supply Duration', margin + contentWidth / 2 + 5, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(11);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelDuration} Days`, margin + contentWidth / 2 + 5, y + 13.5);
+                                
+                                // Fortsetzung Hinweis
+                                y += 22;
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('(Continued on page 2 / Fortsetzung auf Seite 2)', pageWidth / 2, y, { align: 'center' });
+                                
+                                // Footer
+                                btmDoc.setFillColor(...navy);
+                                btmDoc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+                                btmDoc.setFillColor(...gold);
+                                btmDoc.rect(0, pageHeight - 12, pageWidth, 1, 'F');
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...white);
+                                btmDoc.text('Privatpraxis NEVPAZ GmbH', pageWidth / 2, pageHeight - 7, { align: 'center' });
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(5);
+                                btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', pageWidth / 2, pageHeight - 4, { align: 'center' });
+                                btmDoc.setFontSize(4);
+                                btmDoc.setTextColor(...goldLight);
+                                btmDoc.text('Apobank • IBAN: DE59 3006 0601 0022 7339 56 • HRB 190418 Amtsgericht Hamburg', pageWidth / 2, pageHeight - 1.5, { align: 'center' });
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...white);
+                                btmDoc.text('Page 1/2', pageWidth - margin, pageHeight - 4, { align: 'right' });
+
+                                // ========== SEITE 2 ==========
+                                btmDoc.addPage();
+                                
+                                // Watermark
+                                btmDoc.setFillColor(250, 251, 253);
+                                btmDoc.rect(0, 0, pageWidth, pageHeight, 'F');
+                                
+                                // Header Seite 2
+                                btmDoc.setFillColor(...navy);
+                                btmDoc.rect(0, 0, pageWidth, 6, 'F');
+                                btmDoc.setFillColor(...gold);
+                                btmDoc.rect(0, 6, pageWidth, 1, 'F');
+                                
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(10);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('PRIVATPRAXIS NEVPAZ', margin, 12);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Medical Certificate — Continuation', margin, 17);
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(8);
+                                btmDoc.setTextColor(...charcoal);
+                                btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...textGray);
+                                btmDoc.text(`Destination: ${formData.destination || 'Not specified'}`, pageWidth - margin, 17, { align: 'right' });
+                                
+                                // Legal Notice
+                                y = 28;
+                                btmDoc.setFillColor(248, 250, 252);
+                                btmDoc.roundedRect(margin, y, contentWidth, 55, 2, 2, 'F');
+                                btmDoc.setDrawColor(...navy);
+                                btmDoc.setLineWidth(0.3);
+                                btmDoc.roundedRect(margin, y, contentWidth, 55, 2, 2, 'S');
+                                
+                                btmDoc.setFillColor(...navy);
+                                btmDoc.roundedRect(margin, y, contentWidth, 8, 2, 2, 'F');
+                                btmDoc.rect(margin, y + 4, contentWidth, 4, 'F');
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(255, 255, 255);
+                                btmDoc.text('MEDICAL CERTIFICATION & LEGAL NOTICE', margin + contentWidth / 2, y + 5.5, { align: 'center' });
+                                
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...charcoal);
+                                const legalTextNonSchengen = [
+                                    'This medical certificate is issued by a licensed physician in Germany to confirm that the patient named herein requires',
+                                    'the prescribed controlled substance(s) for ongoing medical treatment during international travel. The medication is',
+                                    'medically necessary and has been prescribed in accordance with German medical standards and regulations.',
+                                    '',
+                                    'The bearer is authorized to carry the stated quantity of medication for personal medical use only. Border control,',
+                                    'customs authorities, and relevant officials are kindly requested to permit passage with this medication.',
+                                    '',
+                                    'This certificate should be presented together with the original medication in its pharmacy-labeled packaging.'
+                                ];
+                                let textY = y + 14;
+                                legalTextNonSchengen.forEach(line => {
+                                    btmDoc.text(line, margin + 4, textY);
+                                    textY += 4.5;
+                                });
+                                
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Ref: German Narcotics Act (BtMG) | International Health Regulations', margin + 4, y + 51);
+                                
+                                // Issuing Authority Section
+                                y += 62;
+                                y = drawNonSchengenSection('D', 'Ausstellende Behörde (falls erforderlich)', 'Issuing Authority (if required)', y);
+                                
+                                // Kompakte Behörden-Box
+                                const authBoxHeight = 28;
+                                btmDoc.setFillColor(...paperWhite);
+                                btmDoc.roundedRect(margin, y, contentWidth, authBoxHeight, 2, 2, 'F');
+                                btmDoc.setDrawColor(...silver);
+                                btmDoc.setLineWidth(0.4);
+                                btmDoc.roundedRect(margin, y, contentWidth, authBoxHeight, 2, 2, 'S');
+                                
+                                const authX = margin + 5;
+                                let authY = y + 6;
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(9);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(formData.healthAuthorityName || '________________________________________', authX, authY);
+                                authY += 5;
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(7.5);
+                                btmDoc.setTextColor(...charcoal);
+                                btmDoc.text(formData.healthAuthorityAddress || '________________________________________', authX, authY);
+                                authY += 5;
+                                const contactParts = [];
+                                if (formData.healthAuthorityPhone) contactParts.push(`Tel: ${formData.healthAuthorityPhone}`);
+                                if (formData.healthAuthorityEmail) contactParts.push(`Email: ${formData.healthAuthorityEmail}`);
+                                if (contactParts.length > 0) {
+                                    btmDoc.setFontSize(6.5);
+                                    btmDoc.setTextColor(...textGray);
+                                    btmDoc.text(contactParts.join('  |  '), authX, authY);
                                 }
-                                btmDoc.line(contentX, y, pageWidth - 20, y); btmDoc.text('Address', contentX, y + 3); y += 15;
-                                btmDoc.line(contentX, y, pageWidth - 20, y); btmDoc.text('Seal / Signature', contentX, y + 3);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Name / Address / Contact', pageWidth - margin - 5, y + 6, { align: 'right' });
+                                
+                                y += authBoxHeight + 6;
+                                
+                                // Official Seal Box
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6.5);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('OFFICIAL SEAL & SIGNATURE (if required)', margin, y + 3);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5.5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Dienstsiegel & Unterschrift (falls erforderlich)', margin, y + 7);
+                                btmDoc.setFillColor(...paperWhite);
+                                btmDoc.roundedRect(margin, y + 10, contentWidth, 28, 2, 2, 'F');
+                                btmDoc.setDrawColor(...silver);
+                                btmDoc.roundedRect(margin, y + 10, contentWidth, 28, 2, 2, 'S');
+                                
+                                y += 46;
+                                
+                                // Important Notice Box
+                                btmDoc.setFillColor(255, 250, 242);
+                                btmDoc.roundedRect(margin, y, contentWidth, 35, 2, 2, 'F');
+                                btmDoc.setDrawColor(...gold);
+                                btmDoc.setLineWidth(0.6);
+                                btmDoc.roundedRect(margin, y, contentWidth, 35, 2, 2, 'S');
+                                btmDoc.setFillColor(...gold);
+                                btmDoc.circle(margin + 9, y + 10, 4, 'F');
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(10);
+                                btmDoc.setTextColor(255, 255, 255);
+                                btmDoc.text('!', margin + 9, y + 12, { align: 'center' });
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('Important Travel Information', margin + 18, y + 8);
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...charcoal);
+                                btmDoc.text('Please note that regulations for carrying controlled substances vary by country.', margin + 18, y + 15);
+                                btmDoc.text('Contact the embassy or consulate of your destination country for specific requirements.', margin + 18, y + 20);
+                                btmDoc.text('Always carry medication in original pharmacy packaging with this certificate.', margin + 18, y + 25);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('For questions contact: info@nevpaz.de | +49 40 238353790', margin + 18, y + 31);
+                                
+                                // Footer Seite 2
+                                btmDoc.setFillColor(...navy);
+                                btmDoc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+                                btmDoc.setFillColor(...gold);
+                                btmDoc.rect(0, pageHeight - 12, pageWidth, 1, 'F');
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...white);
+                                btmDoc.text('Privatpraxis NEVPAZ GmbH', pageWidth / 2, pageHeight - 7, { align: 'center' });
+                                btmDoc.setFont('helvetica', 'normal');
+                                btmDoc.setFontSize(5);
+                                btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', pageWidth / 2, pageHeight - 4, { align: 'center' });
+                                btmDoc.setFontSize(4);
+                                btmDoc.setTextColor(...goldLight);
+                                btmDoc.text(`Verify: ${btmSecurityHash} | ${btmDocId}`, pageWidth / 2, pageHeight - 1.5, { align: 'center' });
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...white);
+                                btmDoc.text('Page 2/2', pageWidth - margin, pageHeight - 4, { align: 'right' });
                             }
                             
                             // BTM-Formular Properties setzen
