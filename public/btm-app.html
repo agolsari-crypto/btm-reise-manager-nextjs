@@ -1197,7 +1197,7 @@
             const [formData, setFormData] = useState({
                 selectedDoctorId: '', patName: '', patFirstName: '', patDob: '', patPob: '', patAddress: '', patPassport: '', patNationality: 'Deutsch', patSex: '',
                 medTradeName: '', medDosageForm: 'Hartkapseln', medSubstance: '', medConcentration: 0, medDailyCount: 0, medInstructions: '', doseMorning: 0, doseNoon: 0, doseEvening: 0,
-                travelStartDate: '', travelDuration: 0, countryType: 'schengen', destination: '',
+                travelStartDate: '', travelDuration: 0, countryType: 'schengen', destination: '', destinationCity: '',
                 healthAuthorityName: '', healthAuthorityAddress: '', healthAuthorityPhone: '', healthAuthorityEmail: '', healthAuthorityFax: ''
             });
 
@@ -1540,6 +1540,16 @@
                 if (!doctor) { alert("Bitte wählen Sie einen Arzt aus."); return; }
                 const docAssets = doctorAssets[doctor.id] || { signature: null, stamp: null, letterhead: null };
                 setLoading(true);
+                
+                // Übersetzung Darreichungsform (Hartkapseln → Extended Release)
+                const translateDosageForm = (form) => {
+                    if (!form) return '';
+                    const lower = form.toLowerCase();
+                    if (lower.includes('hartkapseln') || lower.includes('hartkapsel') || lower.includes('hard capsule')) {
+                        return 'Hard capsules (extended release) / Hartkapseln m. verzög. Freisetzung';
+                    }
+                    return form;
+                };
                 
                 // QR-Code Generator Funktion
                 const generateQRCodeDataURL = (text) => {
@@ -2112,7 +2122,7 @@
                             doc.line(margin + 4, y + 14, margin + contentWidth - 4, y + 14);
                             
                             drawField('Trade Name', 'Handelsname', formData.medTradeName || '—', col1, y + 4);
-                            drawField('Dosage Form', 'Darreichungsform', formData.medDosageForm || '—', col2, y + 4);
+                            drawField('Dosage Form', 'Darreichungsform', translateDosageForm(formData.medDosageForm) || '—', col2, y + 4);
                             drawField('Active Substance', 'Wirkstoff', formData.medSubstance || '—', col1, y + 17);
                             drawField('Concentration', 'Konzentration', `${formData.medConcentration || '—'} mg`, col2, y + 17);
                             
@@ -2634,7 +2644,7 @@
                                 y += 22;
                                 y = drawPremiumSection('C', 'Verschriebenes Arzneimittel', 'Prescribed Medication', y);
                                 drawPremiumField('Handelsname', 'Trade Name', formData.medTradeName, margin, y);
-                                drawPremiumField('Darreichungsform', 'Dosage Form', formData.medDosageForm, margin + 85, y);
+                                drawPremiumField('Darreichungsform', 'Dosage Form', translateDosageForm(formData.medDosageForm), margin + 85, y);
                                 y += 12;
                                 drawPremiumField('Wirkstoff', 'Active Substance', formData.medSubstance, margin, y);
                                 drawPremiumField('Konzentration', 'Concentration', `${formData.medConcentration} mg`, margin + 85, y);
@@ -2926,7 +2936,7 @@
                                 drawPremiumFooter(2);
                             } else {
                                 // ========== NON-SCHENGEN PREMIUM DESIGN ==========
-                                // Gleiche Premium-Optik wie Schengen, aber ohne Logo und mit Reiseziel
+                                // Gleiche Premium-Optik wie Schengen, mit Logo und Reiseziel
                                 
                                 const navy = [15, 35, 70];
                                 const gold = [180, 142, 87];
@@ -2957,19 +2967,28 @@
                                 btmDoc.setFillColor(...gold);
                                 btmDoc.rect(0, 6, pageWidth, 1.5, 'F');
                                 
+                                // Logo links oben
+                                if (logo) {
+                                    const logoWidth = 28;
+                                    const logoHeight = 28;
+                                    tryAddImageBtm(logo, margin, 10, logoWidth, logoHeight);
+                                }
+                                
+                                // Praxis-Info (mit Offset für Logo)
+                                const textStartX = logo ? margin + 32 : margin;
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(14);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('PRIVATPRAXIS NEVPAZ', margin, 18);
+                                btmDoc.text('PRIVATPRAXIS NEVPAZ', textStartX, 18);
                                 btmDoc.setFont('helvetica', 'normal');
                                 btmDoc.setFontSize(8);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', margin, 23);
+                                btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', textStartX, 23);
                                 btmDoc.setFontSize(7);
-                                btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', margin, 27);
-                                btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', margin, 31);
+                                btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', textStartX, 27);
+                                btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', textStartX, 31);
                                 
-                                // Document Info Box (rechts oben) - OHNE LOGO
+                                // Document Info Box (rechts oben)
                                 const infoBoxX = pageWidth - margin - 40;
                                 btmDoc.setFillColor(...lightBlue);
                                 btmDoc.roundedRect(infoBoxX, 12, 40, 24, 2, 2, 'F');
@@ -3140,7 +3159,11 @@
                                 btmDoc.text('REISEZIEL / DESTINATION', margin + 8, y + 5.5);
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(11);
-                                btmDoc.text(formData.destination || 'Not specified', margin + 8, y + 12);
+                                // Stadt, Land Format
+                                const destinationText = formData.destinationCity && formData.destination 
+                                    ? `${formData.destinationCity}, ${formData.destination}`
+                                    : formData.destination || 'Not specified';
+                                btmDoc.text(destinationText, margin + 8, y + 12);
                                 
                                 // Trennlinie
                                 btmDoc.setDrawColor(...gold);
@@ -3173,7 +3196,7 @@
                                 y += 22;
                                 y = drawNonSchengenSection('C', 'Verschriebenes Arzneimittel', 'Prescribed Medication', y);
                                 drawNonSchengenField('Handelsname', 'Trade Name', formData.medTradeName, margin, y);
-                                drawNonSchengenField('Darreichungsform', 'Dosage Form', formData.medDosageForm, margin + 85, y);
+                                drawNonSchengenField('Darreichungsform', 'Dosage Form', translateDosageForm(formData.medDosageForm), margin + 85, y);
                                 y += 12;
                                 drawNonSchengenField('Wirkstoff', 'Active Substance', formData.medSubstance, margin, y);
                                 drawNonSchengenField('Konzentration', 'Concentration', `${formData.medConcentration} mg`, margin + 85, y);
@@ -3276,7 +3299,11 @@
                                 btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                btmDoc.text(`Destination: ${formData.destination || 'Not specified'}`, pageWidth - margin, 17, { align: 'right' });
+                                // Stadt, Land Format für Seite 2
+                                const destinationTextP2 = formData.destinationCity && formData.destination 
+                                    ? `${formData.destinationCity}, ${formData.destination}`
+                                    : formData.destination || 'Not specified';
+                                btmDoc.text(`Destination: ${destinationTextP2}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // Legal Notice
                                 y = 28;
@@ -3942,9 +3969,15 @@
                                     </div>
                                 </div>
                                 {formData.countryType === 'non-schengen' && (
-                                    <div className="mt-4 sm:mt-6 animate-slide-down">
-                                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Zielland</label>
-                                        <input type="text" name="destination" value={formData.destination} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="z.B. USA, Thailand, Japan..." />
+                                    <div className="mt-4 sm:mt-6 animate-slide-down grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Zielstadt</label>
+                                            <input type="text" name="destinationCity" value={formData.destinationCity || ''} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="z.B. Bangkok, New York, Tokyo..." />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Zielland</label>
+                                            <input type="text" name="destination" value={formData.destination} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="z.B. Thailand, USA, Japan..." />
+                                        </div>
                                     </div>
                                 )}
                                 
