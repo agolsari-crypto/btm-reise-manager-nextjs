@@ -2600,48 +2600,45 @@
                                     btmDoc.rect(0, 4, pageWidth, 2, 'F');
                                     btmDoc.setFillColor(...gold);
                                     btmDoc.rect(0, 6, pageWidth, 0.8, 'F');
-                                    btmDoc.setFillColor(...lightBlue);
-                                    btmDoc.rect(0, 6.8, pageWidth, 32, 'F');
+                                    
+                                    // Logo links oben (wie Non-Schengen)
+                                    if (logo) {
+                                        const logoWidth = 28;
+                                        const logoHeight = 28;
+                                        tryAddImageBtm(logo, margin, 10, logoWidth, logoHeight);
+                                    }
+                                    
+                                    // Praxis-Info (mit Offset für Logo)
+                                    const textStartX = logo ? margin + 32 : margin;
                                     btmDoc.setFont('helvetica', 'bold');
                                     btmDoc.setFontSize(13);
                                     btmDoc.setTextColor(...navy);
-                                    btmDoc.text('PRIVATPRAXIS NEVPAZ', margin, 17);
-                                    
-                                    // QR-Code im Header (oben rechts) - Dezent und professionell
-                                    if (btmQrCodeDataURL) {
-                                        const hdrQrX = pageWidth - margin - 22;
-                                        const hdrQrY = 10;
-                                        const hdrQrSize = 22;
-                                        // Subtiler Schatten
-                                        btmDoc.setFillColor(215, 222, 232);
-                                        btmDoc.roundedRect(hdrQrX + 0.8, hdrQrY + 0.8, hdrQrSize, hdrQrSize, 1.5, 1.5, 'F');
-                                        // Weißer Hintergrund
-                                        btmDoc.setFillColor(255, 255, 255);
-                                        btmDoc.roundedRect(hdrQrX, hdrQrY, hdrQrSize, hdrQrSize, 1.5, 1.5, 'F');
-                                        // Feiner Navy Rahmen
-                                        btmDoc.setDrawColor(...navy);
-                                        btmDoc.setLineWidth(0.6);
-                                        btmDoc.roundedRect(hdrQrX, hdrQrY, hdrQrSize, hdrQrSize, 1.5, 1.5, 'S');
-                                        // Gold-Akzent (dezenter)
-                                        btmDoc.setFillColor(...gold);
-                                        btmDoc.rect(hdrQrX + 2, hdrQrY + 1, hdrQrSize - 4, 0.6, 'F');
-                                        // QR-Code
-                                        tryAddImageBtm(btmQrCodeDataURL, hdrQrX + 2, hdrQrY + 2.5, hdrQrSize - 4, hdrQrSize - 4);
-                                    }
+                                    btmDoc.text('PRIVATPRAXIS NEVPAZ', textStartX, 17);
                                     btmDoc.setFont('helvetica', 'normal');
                                     btmDoc.setFontSize(8);
                                     btmDoc.setTextColor(...textGray);
-                                    btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', margin, 23);
+                                    btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', textStartX, 23);
                                     btmDoc.setFontSize(7);
                                     btmDoc.setTextColor(...silver);
-                                    btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', margin, 29);
-                                    btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', margin, 34);
-                                    // BfArM Hinweise links vom QR-Code
-                                    const bfarmX = pageWidth - margin - 28;
-                                    btmDoc.text('BfArM 017 (12.2000)', bfarmX, 16, { align: 'right' });
-                                    btmDoc.text('Artikel 75 SDÜ', bfarmX, 21, { align: 'right' });
+                                    btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', textStartX, 29);
+                                    btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', textStartX, 34);
+                                    
+                                    // Document Info Box (rechts oben) - wie Non-Schengen
+                                    const infoBoxX = pageWidth - margin - 40;
+                                    btmDoc.setFillColor(...lightBlue);
+                                    btmDoc.roundedRect(infoBoxX, 10, 40, 28, 2, 2, 'F');
+                                    btmDoc.setDrawColor(...navy);
+                                    btmDoc.setLineWidth(0.3);
+                                    btmDoc.roundedRect(infoBoxX, 10, 40, 28, 2, 2, 'S');
+                                    btmDoc.setFont('helvetica', 'bold');
                                     btmDoc.setFontSize(6);
-                                    btmDoc.text(`Dok-Nr: ${btmDocId}`, bfarmX, 26, { align: 'right' });
+                                    btmDoc.setTextColor(...navy);
+                                    btmDoc.text('BfArM 017 (12.2000)', infoBoxX + 20, 16, { align: 'center' });
+                                    btmDoc.text('Artikel 75 SDÜ', infoBoxX + 20, 21, { align: 'center' });
+                                    btmDoc.setFontSize(5);
+                                    btmDoc.setTextColor(...silver);
+                                    btmDoc.text(`Dok-Nr: ${btmDocId}`, infoBoxX + 20, 27, { align: 'center' });
+                                    btmDoc.text(`${btmIssuedDate}`, infoBoxX + 20, 32, { align: 'center' });
                                 };
                                 
                                 const drawPremiumSection = (letter, titleDE, titleEN, yPos) => {
