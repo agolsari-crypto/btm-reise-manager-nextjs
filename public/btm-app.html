@@ -4287,7 +4287,26 @@
                             </section>
 
                             {/* Section 2: Patientendaten */}
-                            <section className="section-card bg-white rounded-2xl shadow-lg shadow-slate-100 p-5 sm:p-8 section-padding-mobile">
+                            <section className="section-card bg-white rounded-2xl shadow-lg shadow-slate-100 p-5 sm:p-8 section-padding-mobile relative">
+                                {/* Anmelde-Overlay wenn nicht eingeloggt */}
+                                {!currentUser && !isAdminMode && (
+                                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl z-10 flex flex-col items-center justify-center p-6">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-amber-200 rounded-2xl flex items-center justify-center mb-4">
+                                            <Icons.Lock className="h-8 w-8 text-amber-600" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-slate-800 mb-2 text-center">Anmeldung erforderlich</h3>
+                                        <p className="text-sm text-slate-600 text-center mb-4 max-w-xs">
+                                            Bitte melden Sie sich zuerst an, um Ihre Daten eingeben zu können.
+                                        </p>
+                                        <button 
+                                            onClick={() => setShowPatientLoginModal(true)}
+                                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
+                                        >
+                                            <Icons.User className="h-5 w-5" />
+                                            Jetzt anmelden
+                                        </button>
+                                    </div>
+                                )}
                                 <h2 className="text-base sm:text-lg font-bold text-slate-800 mb-6 sm:mb-8 flex items-center gap-3">
                                     <span className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-sm font-bold shadow-md">2</span>
                                     Patientendaten
