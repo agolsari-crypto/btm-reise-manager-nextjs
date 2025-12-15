@@ -2005,9 +2005,26 @@
                         finalDailyCount = 1;
                     }
                     
-                    const localTotalUnits = finalDailyCount * (formData.travelDuration || 0);
+                    // Prüfe ob Reisedauer > 30 Tage - Gesamtmenge auf 30 Tage begrenzen
+                    const maxDaysForMedication = 30;
+                    const actualTravelDuration = formData.travelDuration || 0;
+                    const effectiveDurationForMeds = Math.min(actualTravelDuration, maxDaysForMedication);
+                    const exceedsMaxDuration = actualTravelDuration > maxDaysForMedication;
+                    
+                    const localTotalUnits = finalDailyCount * effectiveDurationForMeds;
                     const localTotalSubstance = localTotalUnits * (formData.medConcentration || 0);
-                    const localEndDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
+                    const localEndDate = calculateEndDate(formData.travelStartDate, actualTravelDuration);
+                    
+                    // Gültigkeitsdauer berechnen: 30 Tage für Schengen, 90 Tage für Non-Schengen
+                    const isSchengen = formData.countryType === 'schengen';
+                    const validityDays = isSchengen ? 30 : 90;
+                    const validityEndDate = calculateEndDate(formData.travelStartDate, validityDays);
+                    
+                    // Warnung anzeigen wenn Reisedauer > 30 Tage
+                    if (exceedsMaxDuration) {
+                        console.warn('⚠️ Reisedauer überschreitet 30 Tage - Medikamentenmenge auf 30 Tage begrenzt');
+                        alert(`⚠️ Hinweis: Ihre Reisedauer beträgt ${actualTravelDuration} Tage.\n\nDie Gesamtmenge des Medikaments wurde auf maximal 30 Tage begrenzt (${localTotalSubstance} mg).\n\nFür längere Reisen benötigen Sie ggf. eine Nachverordnung vor Ort oder müssen mehrere Bescheinigungen beantragen.`);
+                    }
                     
                     console.log('📊 PDF Berechnungen:', {
                         medDailyCount: formData.medDailyCount,
@@ -2016,11 +2033,16 @@
                         doseEvening: formData.doseEvening,
                         medInstructions: formData.medInstructions,
                         finalDailyCount: finalDailyCount,
-                        travelDuration: formData.travelDuration,
+                        travelDuration: actualTravelDuration,
+                        effectiveDurationForMeds: effectiveDurationForMeds,
+                        exceedsMaxDuration: exceedsMaxDuration,
                         medConcentration: formData.medConcentration,
                         totalUnits: localTotalUnits,
                         totalSubstance: localTotalSubstance,
-                        endDate: localEndDate
+                        endDate: localEndDate,
+                        isSchengen: isSchengen,
+                        validityDays: validityDays,
+                        validityEndDate: validityEndDate
                     });
                     
                     try {
@@ -2332,11 +2354,11 @@
                                     doc.setTextColor(...silver);
                                     doc.text(securityHash, x + width - 6, y + 22, { align: 'right' });
                                 } else {
-                                    // Platzhalter wenn kein Bild: Arzt-Initialen
+                                    // Platzhalter wenn kein Bild: Ausgewählter Arzt
                                     doc.setFont('helvetica', 'bold');
-                                    doc.setFontSize(16);
+                                    doc.setFontSize(12);
                                     doc.setTextColor(...navy);
-                                    doc.text('Dr. A. Golsari', x + width / 2, y + 12, { align: 'center' });
+                                    doc.text(doctor.name || 'Dr. med.', x + width / 2, y + 12, { align: 'center' });
                                     doc.setFont('helvetica', 'italic');
                                     doc.setFontSize(7);
                                     doc.setTextColor(...silver);
@@ -2511,7 +2533,7 @@
                             doc.setTextColor(...charcoal);
                             doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth / 4, y + 17, { align: 'center' });
                             
-                            // Validity Period
+                            // Validity Period - Schengen: 30 Tage, Non-Schengen: 90 Tage
                             const today = new Date().toISOString().split('T')[0];
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
@@ -2524,7 +2546,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(9);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today} - ${localEndDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
+                            doc.text(`${formData.travelStartDate || today} - ${validityEndDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
                             
                             y += 24;
                             
@@ -2935,11 +2957,11 @@
                                         btmDoc.setTextColor(...silver);
                                         btmDoc.text(btmSecurityHash, x + width - 5, y + 21, { align: 'right' });
                                     } else {
-                                        // Platzhalter wenn kein Bild: Arzt-Initialen
+                                        // Platzhalter wenn kein Bild: Ausgewählter Arzt
                                         btmDoc.setFont('helvetica', 'bold');
-                                        btmDoc.setFontSize(14);
+                                        btmDoc.setFontSize(11);
                                         btmDoc.setTextColor(...navy);
-                                        btmDoc.text('Dr. A. Golsari', x + width / 2, y + 11, { align: 'center' });
+                                        btmDoc.text(doctor.name || 'Dr. med.', x + width / 2, y + 11, { align: 'center' });
                                         btmDoc.setFont('helvetica', 'italic');
                                         btmDoc.setFontSize(6);
                                         btmDoc.setTextColor(...silver);
@@ -3015,7 +3037,13 @@
                                 drawPremiumField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
-                                const sexDisplay = formData.patSex === 'M' ? 'Männlich (Male)' : formData.patSex === 'F' ? 'Weiblich (Female)' : formData.patSex;
+                                // Geschlecht mit robustem Fallback
+                                let sexDisplay = '—';
+                                if (formData.patSex === 'M') sexDisplay = 'Männlich (Male)';
+                                else if (formData.patSex === 'F') sexDisplay = 'Weiblich (Female)';
+                                else if (formData.patSex === 'D') sexDisplay = 'Divers (Diverse)';
+                                else if (formData.patSex) sexDisplay = formData.patSex;
+                                console.log('🚻 Geschlecht:', formData.patSex, '→', sexDisplay);
                                 drawPremiumField('Geschlecht', 'Sex', sexDisplay, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
@@ -3050,7 +3078,7 @@
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
                                 btmDoc.text(`${formData.travelDuration} Tage / Days`, margin + 8, y + 13.5);
-                                // Gültigkeitszeitraum
+                                // Gültigkeitszeitraum - 30 Tage für Schengen
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...navy);
@@ -3068,7 +3096,7 @@
                                 btmDoc.text(' - ', margin + 120, y + 13.5);
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${localEndDate}`, margin + 127, y + 13.5);
+                                btmDoc.text(`${validityEndDate}`, margin + 127, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
@@ -3150,7 +3178,7 @@
                                 btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${localEndDate}`, pageWidth - margin, 17, { align: 'right' });
+                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${validityEndDate}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // SEKTION D - Behörde
                                 y = 28;
@@ -3512,10 +3540,11 @@
                                     } else if (docAssets.stamp) {
                                         tryAddImageBtm(docAssets.stamp, x + (width - 30) / 2, yPos + 4, 30, 17);
                                     } else {
+                                        // Platzhalter wenn kein Bild: Ausgewählter Arzt
                                         btmDoc.setFont('helvetica', 'bold');
-                                        btmDoc.setFontSize(12);
+                                        btmDoc.setFontSize(10);
                                         btmDoc.setTextColor(...navy);
-                                        btmDoc.text('Dr. A. Golsari', x + width / 2, yPos + 11, { align: 'center' });
+                                        btmDoc.text(doctor.name || 'Dr. med.', x + width / 2, yPos + 11, { align: 'center' });
                                         btmDoc.setFont('helvetica', 'italic');
                                         btmDoc.setFontSize(6);
                                         btmDoc.setTextColor(...silver);
@@ -3566,7 +3595,13 @@
                                 drawNonSchengenField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
-                                drawNonSchengenField('Geschlecht', 'Sex', formData.patGender === 'male' ? 'Männlich (Male)' : formData.patGender === 'female' ? 'Weiblich (Female)' : 'Divers (Diverse)', margin + 80, y);
+                                // Geschlecht mit robustem Fallback
+                                let sexDisplayNonSchengen = '—';
+                                if (formData.patSex === 'M') sexDisplayNonSchengen = 'Männlich (Male)';
+                                else if (formData.patSex === 'F') sexDisplayNonSchengen = 'Weiblich (Female)';
+                                else if (formData.patSex === 'D') sexDisplayNonSchengen = 'Divers (Diverse)';
+                                else if (formData.patSex) sexDisplayNonSchengen = formData.patSex;
+                                drawNonSchengenField('Geschlecht', 'Sex', sexDisplayNonSchengen, margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
                                 drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 55, y);
@@ -3614,13 +3649,13 @@
                                 btmDoc.setTextColor(...navy);
                                 btmDoc.text(`${formData.travelDuration} Days`, margin + 90, y + 13.5);
                                 
-                                // Gültigkeitszeitraum
+                                // Gültigkeitszeitraum - 90 Tage für Non-Schengen
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.text('VALIDITY', margin + 130, y + 5.5);
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(9);
-                                btmDoc.text(`${formData.travelStartDate} - ${localEndDate}`, margin + 130, y + 12);
+                                btmDoc.text(`${formData.travelStartDate} - ${validityEndDate}`, margin + 130, y + 12);
                                 
                                 // SEKTION C - Medikamente
                                 y += 22;
