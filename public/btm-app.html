@@ -2507,48 +2507,74 @@
                             
                             y += 42;
                             
-                            // ===== REISEDAUER-BOX =====
+                            // ===== REISEDAUER-BOX (3 Spalten) =====
                             doc.setFillColor(...white);
-                            doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
+                            doc.roundedRect(margin, y, contentWidth, 22, 2, 2, 'F');
                             doc.setDrawColor(...navy);
                             doc.setLineWidth(0.5);
-                            doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'S');
+                            doc.roundedRect(margin, y, contentWidth, 22, 2, 2, 'S');
                             
-                            // Graue Trennlinie in der Mitte
+                            // Trennlinien für 3 Spalten
                             doc.setDrawColor(...silver);
                             doc.setLineWidth(0.8);
-                            doc.line(margin + contentWidth / 2, y + 3, margin + contentWidth / 2, y + 17);
+                            doc.line(margin + contentWidth / 3, y + 3, margin + contentWidth / 3, y + 19);
+                            doc.line(margin + contentWidth * 2 / 3, y + 3, margin + contentWidth * 2 / 3, y + 19);
                             
-                            // Travel Duration
+                            // SPALTE 1: Reiseziel
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
                             doc.setTextColor(...navy);
-                            doc.text('TRAVEL DURATION', margin + contentWidth / 4, y + 6, { align: 'center' });
+                            doc.text('DESTINATION', margin + contentWidth / 6, y + 6, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Reisedauer', margin + contentWidth / 4, y + 10, { align: 'center' });
+                            doc.text('Reiseziel', margin + contentWidth / 6, y + 10, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(13);
+                            doc.setFontSize(9);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth / 4, y + 17, { align: 'center' });
+                            const attestDestText = formData.destinationCity && formData.destination 
+                                ? `${formData.destinationCity}, ${formData.destination}`
+                                : formData.destination || '—';
+                            // Kürzen wenn zu lang
+                            const attestDestShort = attestDestText.length > 24 ? attestDestText.substring(0, 23) + '…' : attestDestText;
+                            doc.text(attestDestShort, margin + contentWidth / 6, y + 17, { align: 'center' });
                             
-                            // Validity Period - Schengen: 30 Tage, Non-Schengen: 90 Tage
+                            // SPALTE 2: Reisedauer mit Datum
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(7);
+                            doc.setTextColor(...navy);
+                            doc.text('TRAVEL PERIOD', margin + contentWidth / 2, y + 6, { align: 'center' });
+                            doc.setFont('helvetica', 'italic');
+                            doc.setFontSize(5);
+                            doc.setTextColor(...silver);
+                            doc.text('Reisezeitraum', margin + contentWidth / 2, y + 10, { align: 'center' });
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(8);
+                            doc.setTextColor(...charcoal);
+                            doc.text(`${formData.travelStartDate || '—'} - ${localEndDate}`, margin + contentWidth / 2, y + 15, { align: 'center' });
+                            doc.setFontSize(7);
+                            doc.setTextColor(...gold);
+                            doc.text(`(${formData.travelDuration || '—'} Days)`, margin + contentWidth / 2, y + 19, { align: 'center' });
+                            
+                            // SPALTE 3: Validity Period
                             const today = new Date().toISOString().split('T')[0];
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
                             doc.setTextColor(...navy);
-                            doc.text('VALIDITY PERIOD', margin + contentWidth * 3 / 4, y + 6, { align: 'center' });
+                            doc.text('VALIDITY', margin + contentWidth * 5 / 6, y + 6, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Gültigkeitszeitraum', margin + contentWidth * 3 / 4, y + 10, { align: 'center' });
+                            doc.text('Gültigkeit', margin + contentWidth * 5 / 6, y + 10, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(9);
+                            doc.setFontSize(8);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today} - ${validityEndDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
+                            doc.text(`${formData.travelStartDate || today}`, margin + contentWidth * 5 / 6, y + 15, { align: 'center' });
+                            doc.setFontSize(7);
+                            doc.setTextColor(...gold);
+                            doc.text(`- ${validityEndDate}`, margin + contentWidth * 5 / 6, y + 19, { align: 'center' });
                             
-                            y += 24;
+                            y += 26;
                             
                             // ===== MEDIKAMENTEN-TABELLE =====
                             doc.setFillColor(...navy);
@@ -3049,54 +3075,79 @@
                                 drawPremiumField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
                                 drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 50, y);
                                 
-                                // Reisedauer Box - Dezentes Design
+                                // Reisedauer & Reiseziel Box - Dezentes Design
                                 y += 14;
-                                // Hauptbox mit lightBlue Hintergrund
+                                // Hauptbox mit lightBlue Hintergrund (größer für 3 Felder)
                                 btmDoc.setFillColor(...lightBlue);
-                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
+                                btmDoc.roundedRect(margin, y, contentWidth, 18, 1.5, 1.5, 'F');
                                 // Navy Rahmen (dezenter)
                                 btmDoc.setDrawColor(...navy);
                                 btmDoc.setLineWidth(0.5);
-                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
+                                btmDoc.roundedRect(margin, y, contentWidth, 18, 1.5, 1.5, 'S');
                                 // Gold-Akzent oben (dezenter)
                                 btmDoc.setFillColor(...gold);
                                 btmDoc.rect(margin + 3, y + 1, contentWidth - 6, 0.6, 'F');
-                                // Trennlinie
+                                // Trennlinien für 3 Spalten
                                 btmDoc.setDrawColor(...gold);
                                 btmDoc.setLineWidth(0.4);
-                                btmDoc.line(margin + 85, y + 3.5, margin + 85, y + 12.5);
-                                // Felder
+                                btmDoc.line(margin + 55, y + 3.5, margin + 55, y + 14.5);
+                                btmDoc.line(margin + 115, y + 3.5, margin + 115, y + 14.5);
+                                
+                                // FELD 1: Reiseziel
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
+                                btmDoc.setFontSize(5.5);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEDAUER', margin + 8, y + 5.5);
+                                btmDoc.text('REISEZIEL', margin + 4, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5);
+                                btmDoc.setFontSize(4.5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Travel Duration', margin + 8, y + 8.5);
+                                btmDoc.text('Destination', margin + 4, y + 8);
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(10);
+                                btmDoc.setFontSize(8);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Tage / Days`, margin + 8, y + 13.5);
-                                // Gültigkeitszeitraum - 30 Tage für Schengen
+                                const schengenDestText = formData.destinationCity && formData.destination 
+                                    ? `${formData.destinationCity}, ${formData.destination}`
+                                    : formData.destination || '—';
+                                // Text kürzen wenn zu lang
+                                const maxDestLen = 22;
+                                const shortDestText = schengenDestText.length > maxDestLen 
+                                    ? schengenDestText.substring(0, maxDestLen - 1) + '…' 
+                                    : schengenDestText;
+                                btmDoc.text(shortDestText, margin + 4, y + 13);
+                                
+                                // FELD 2: Reisedauer mit Datum
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
+                                btmDoc.setFontSize(5.5);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('GÜLTIGKEITSZEITRAUM', margin + 90, y + 5.5);
+                                btmDoc.text('REISEDAUER', margin + 59, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5);
+                                btmDoc.setFontSize(4.5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Validity Period', margin + 90, y + 8.5);
+                                btmDoc.text('Travel Period', margin + 59, y + 8);
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(10);
+                                btmDoc.setFontSize(7.5);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate}`, margin + 90, y + 13.5);
-                                btmDoc.setFontSize(9);
+                                btmDoc.text(`${formData.travelStartDate} - ${localEndDate}`, margin + 59, y + 12);
+                                btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...gold);
-                                btmDoc.text(' - ', margin + 120, y + 13.5);
-                                btmDoc.setFontSize(10);
+                                btmDoc.text(`(${formData.travelDuration} Tage)`, margin + 59, y + 15.5);
+                                
+                                // FELD 3: Gültigkeitszeitraum - 30 Tage für Schengen
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(5.5);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${validityEndDate}`, margin + 127, y + 13.5);
+                                btmDoc.text('GÜLTIGKEIT', margin + 119, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(4.5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Validity', margin + 119, y + 8);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(8);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate}`, margin + 119, y + 12);
+                                btmDoc.setFontSize(7);
+                                btmDoc.setTextColor(...gold);
+                                btmDoc.text(` - ${validityEndDate}`, margin + 145, y + 12);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
