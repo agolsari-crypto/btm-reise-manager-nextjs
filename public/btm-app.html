@@ -1824,6 +1824,123 @@
         };
 
         // =====================================================
+        // VORSCHAU MODAL KOMPONENTE
+        // =====================================================
+        const PreviewModal = ({ isOpen, onClose, pdfUrl, onConfirm, price }) => {
+            const [isLoading, setIsLoading] = useState(true);
+            
+            if (!isOpen) return null;
+            
+            // Verhindere Rechtsklick
+            const handleContextMenu = (e) => {
+                e.preventDefault();
+                return false;
+            };
+            
+            // Verhindere Keyboard Shortcuts
+            const handleKeyDown = (e) => {
+                if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.key === 'p' || e.key === 'P')) {
+                    e.preventDefault();
+                    return false;
+                }
+            };
+            
+            React.useEffect(() => {
+                document.addEventListener('keydown', handleKeyDown);
+                return () => document.removeEventListener('keydown', handleKeyDown);
+            }, []);
+            
+            return (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-fade-in" onContextMenu={handleContextMenu}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] mx-4 overflow-hidden flex flex-col animate-slide-up">
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-sky-600 to-indigo-700 px-6 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Icons.Eye className="h-6 w-6 text-white" />
+                                <div>
+                                    <h2 className="text-lg font-bold text-white">Dokumentenvorschau</h2>
+                                    <p className="text-sky-100 text-xs">Bitte prüfen Sie alle Angaben vor dem Kauf</p>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors">
+                                <Icons.X className="h-6 w-6" />
+                            </button>
+                        </div>
+                        
+                        {/* Watermark Overlay */}
+                        <div className="relative flex-1 overflow-hidden bg-slate-100" style={{ minHeight: '60vh' }}>
+                            {/* PDF Anzeige */}
+                            {isLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                                    <div className="text-center">
+                                        <div className="w-12 h-12 border-4 border-slate-300 border-t-sky-500 rounded-full animate-spin mx-auto mb-4" />
+                                        <p className="text-slate-500">Vorschau wird geladen...</p>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <iframe 
+                                src={pdfUrl + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH'} 
+                                className="w-full h-full border-0"
+                                style={{ minHeight: '60vh' }}
+                                onLoad={() => setIsLoading(false)}
+                                onContextMenu={handleContextMenu}
+                            />
+                            
+                            {/* Wasserzeichen Overlay */}
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden select-none" style={{ userSelect: 'none' }}>
+                                <div className="transform -rotate-45 text-center">
+                                    <div className="text-6xl font-black text-slate-400/20 tracking-widest">VORSCHAU</div>
+                                    <div className="text-2xl font-bold text-slate-400/15 mt-2">NICHT GÜLTIG</div>
+                                </div>
+                            </div>
+                            
+                            {/* Wiederholtes Wasserzeichen */}
+                            <div className="absolute inset-0 pointer-events-none select-none" style={{ userSelect: 'none' }}>
+                                {[...Array(6)].map((_, i) => (
+                                    <div key={i} className="absolute transform -rotate-45 text-slate-400/10 font-bold text-xl"
+                                        style={{ 
+                                            top: `${15 + i * 20}%`, 
+                                            left: `${-10 + (i % 2) * 50}%`,
+                                            width: '200%'
+                                        }}>
+                                        VORSCHAU • PREVIEW • VORSCHAU • PREVIEW • VORSCHAU • PREVIEW
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Hinweis */}
+                        <div className="bg-amber-50 border-t border-amber-200 px-6 py-3">
+                            <div className="flex items-center gap-2 text-amber-700 text-sm">
+                                <Icons.AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                <span>Dies ist eine Vorschau. Das finale Dokument wird nach der Zahlung ohne Wasserzeichen erstellt.</span>
+                            </div>
+                        </div>
+                        
+                        {/* Footer mit Buttons */}
+                        <div className="bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
+                            <button 
+                                onClick={onClose}
+                                className="px-6 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors"
+                            >
+                                ← Zurück bearbeiten
+                            </button>
+                            
+                            <button 
+                                onClick={onConfirm}
+                                className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-3"
+                            >
+                                <Icons.Check className="h-5 w-5" />
+                                Alles korrekt - Jetzt kaufen ({price})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // =====================================================
         // HAUPTKOMPONENTE
         // =====================================================
         function BtmTravelApp() {
@@ -1837,6 +1954,8 @@
             const [loading, setLoading] = useState(false);
             const [success, setSuccess] = useState(false);
             const [showPaymentModal, setShowPaymentModal] = useState(false);
+            const [showPreviewModal, setShowPreviewModal] = useState(false);
+            const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
             const [pendingProduct, setPendingProduct] = useState(null);
             const [logo, setLogo] = useState(null);
             const [logoScale, setLogoScale] = useState(100);
@@ -2195,6 +2314,160 @@
                 if (pendingPdfGeneration) { generatePDF(pendingPdfGeneration.type, pendingPdfGeneration.paymentDetails); setPendingPdfGeneration(null); }
             };
             
+            // Generiere Vorschau-PDF (mit Wasserzeichen)
+            const generatePreviewPDF = async () => {
+                setLoading(true);
+                
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    const margin = 15;
+                    const contentWidth = pageWidth - margin * 2;
+                    
+                    // Farben
+                    const navy = [15, 35, 70];
+                    const gold = [180, 142, 87];
+                    const silver = [148, 163, 184];
+                    const charcoal = [30, 41, 59];
+                    
+                    // Header
+                    doc.setFillColor(...navy);
+                    doc.rect(0, 0, pageWidth, 25, 'F');
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(16);
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('VORSCHAU - PREVIEW', pageWidth / 2, 12, { align: 'center' });
+                    doc.setFontSize(9);
+                    doc.setTextColor(...gold);
+                    doc.text('Bitte prüfen Sie alle Angaben vor dem Kauf', pageWidth / 2, 19, { align: 'center' });
+                    
+                    let y = 35;
+                    
+                    // Patientendaten
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(...navy);
+                    doc.text('Patientendaten', margin, y);
+                    y += 8;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.setTextColor(...charcoal);
+                    doc.text(`Name: ${formData.patName}, ${formData.patFirstName}`, margin, y); y += 6;
+                    doc.text(`Geburtsdatum: ${formData.patDob}`, margin, y); y += 6;
+                    doc.text(`Geburtsort: ${formData.patPob}`, margin, y); y += 6;
+                    doc.text(`Pass/Ausweis-Nr.: ${formData.patPassport}`, margin, y); y += 6;
+                    doc.text(`Staatsangehörigkeit: ${formData.patNationality}`, margin, y); y += 6;
+                    const sexText = formData.patSex === 'M' ? 'Männlich' : formData.patSex === 'F' ? 'Weiblich' : formData.patSex;
+                    doc.text(`Geschlecht: ${sexText}`, margin, y); y += 6;
+                    doc.text(`Wohnanschrift: ${formData.patAddress}`, margin, y); y += 12;
+                    
+                    // Reisedaten
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(...navy);
+                    doc.text('Reisedaten', margin, y);
+                    y += 8;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.setTextColor(...charcoal);
+                    doc.text(`Reiseziel: ${formData.destination}`, margin, y); y += 6;
+                    doc.text(`Reisebeginn: ${formData.travelStartDate}`, margin, y); y += 6;
+                    doc.text(`Reisedauer: ${formData.travelDuration} Tage`, margin, y); y += 6;
+                    doc.text(`Reiseende: ${endDate}`, margin, y); y += 12;
+                    
+                    // Medikamentendaten
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(...navy);
+                    doc.text('Medikamentendaten', margin, y);
+                    y += 8;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.setTextColor(...charcoal);
+                    doc.text(`Handelsname: ${formData.medTradeName}`, margin, y); y += 6;
+                    doc.text(`Wirkstoff: ${formData.medSubstance}`, margin, y); y += 6;
+                    doc.text(`Konzentration: ${formData.medConcentration} mg`, margin, y); y += 6;
+                    doc.text(`Darreichungsform: ${formData.medDosageForm}`, margin, y); y += 6;
+                    doc.text(`Dosierung: ${formData.medInstructions}`, margin, y); y += 6;
+                    doc.text(`Gesamtmenge: ${totalSubstance} mg ${formData.medSubstance}`, margin, y); y += 12;
+                    
+                    // Arzt
+                    const doctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(...navy);
+                    doc.text('Ausstellender Arzt', margin, y);
+                    y += 8;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.setTextColor(...charcoal);
+                    doc.text(`${doctor?.name || '—'}`, margin, y); y += 6;
+                    doc.text(`${doctor?.specialty || '—'}`, margin, y); y += 12;
+                    
+                    // Behörde
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(12);
+                    doc.setTextColor(...navy);
+                    doc.text('Zuständige Behörde', margin, y);
+                    y += 8;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.setTextColor(...charcoal);
+                    doc.text(`${formData.healthAuthorityName || '—'}`, margin, y); y += 6;
+                    doc.text(`${formData.healthAuthorityAddress || '—'}`, margin, y); y += 15;
+                    
+                    // Wasserzeichen
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(60);
+                    doc.setTextColor(200, 200, 200);
+                    doc.text('VORSCHAU', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+                    
+                    // Hinweisbox
+                    doc.setFillColor(255, 250, 240);
+                    doc.setDrawColor(...gold);
+                    doc.setLineWidth(0.5);
+                    doc.roundedRect(margin, y, contentWidth, 25, 2, 2, 'FD');
+                    
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9);
+                    doc.setTextColor(...navy);
+                    doc.text('WICHTIG:', margin + 5, y + 8);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(...charcoal);
+                    doc.text('Dies ist eine Vorschau. Das finale Dokument enthält alle offiziellen Elemente', margin + 5, y + 14);
+                    doc.text('(Unterschrift, Stempel, QR-Code) und wird nach der Zahlung generiert.', margin + 5, y + 19);
+                    
+                    // Footer
+                    doc.setFillColor(...navy);
+                    doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('Privatpraxis NEVPAZ GmbH • Dammtorwall 7a • 20354 Hamburg • www.nevpaz.de', pageWidth / 2, pageHeight - 6, { align: 'center' });
+                    
+                    // PDF als Blob URL
+                    const pdfBlob = doc.output('blob');
+                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                    
+                    setPreviewPdfUrl(pdfUrl);
+                    setShowPreviewModal(true);
+                    
+                } catch (error) {
+                    console.error('Vorschau-Fehler:', error);
+                    alert('Fehler bei der Vorschau-Generierung');
+                }
+                
+                setLoading(false);
+            };
+            
             const initiatePurchase = () => { 
                 // Prüfen ob alle Felder ausgefüllt sind
                 if (!isFormValid) {
@@ -2222,6 +2495,17 @@
                     return;
                 }
                 
+                // Vorschau generieren und anzeigen
+                generatePreviewPDF();
+            };
+            
+            // Nach Vorschau-Bestätigung zum Bezahlen
+            const confirmPreviewAndPay = () => {
+                setShowPreviewModal(false);
+                if (previewPdfUrl) {
+                    URL.revokeObjectURL(previewPdfUrl);
+                    setPreviewPdfUrl(null);
+                }
                 setPendingProduct('bundle'); 
                 setShowPaymentModal(true); 
             };
@@ -2326,13 +2610,13 @@
                     try {
                         const { jsPDF } = window.jspdf;
                         
-                        // PDF mit Sicherheitseinschränkungen erstellen
+                        // PDF mit Schutz: Öffnen & Drucken erlaubt, Bearbeiten & Kopieren verboten
                         const doc = new jsPDF({
                             encryption: {
-                                userPassword: '', // Kein Passwort zum Öffnen
-                                ownerPassword: 'NEVPAZ_DOC_2024_SECURE', // Passwort für Berechtigungen
-                                userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
-                                // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
+                                userPassword: '',  // Kein Passwort zum Öffnen
+                                ownerPassword: 'NEVPAZ_ATT_2024_SECURE',
+                                userPermissions: ['print', 'print-highres']
+                                // Nicht erlaubt: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
                             }
                         });
                         const pageWidth = doc.internal.pageSize.getWidth();
@@ -2994,12 +3278,13 @@
                             // Attest PDF wird später zusammen mit BTM-Formular per Email gesendet
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
-                            // Mit Sicherheitseinschränkungen erstellen
+                            // PDF mit Schutz: Öffnen & Drucken erlaubt, Bearbeiten & Kopieren verboten
                             const btmDoc = new jsPDF({
                                 encryption: {
-                                    userPassword: '', // Kein Passwort zum Öffnen
-                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE', // Passwort für Berechtigungen
-                                    userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
+                                    userPassword: '',  // Kein Passwort zum Öffnen
+                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE',
+                                    userPermissions: ['print', 'print-highres']
+                                    // Nicht erlaubt: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
                                 }
                             });
                             btmDoc.setFont('helvetica');
@@ -4299,6 +4584,21 @@
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-700 pb-24">
+                    
+                    {/* Vorschau Modal */}
+                    <PreviewModal 
+                        isOpen={showPreviewModal}
+                        onClose={() => {
+                            setShowPreviewModal(false);
+                            if (previewPdfUrl) {
+                                URL.revokeObjectURL(previewPdfUrl);
+                                setPreviewPdfUrl(null);
+                            }
+                        }}
+                        pdfUrl={previewPdfUrl}
+                        onConfirm={confirmPreviewAndPay}
+                        price={`${PRICES.bundle.toFixed(2).replace('.', ',')} €`}
+                    />
                     
                     {/* Stripe Payment Modal */}
                     <PaymentModal 
