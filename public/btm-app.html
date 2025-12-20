@@ -1483,6 +1483,7 @@
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedCoords, setSelectedCoords] = useState(null);
+            const [manualMode, setManualMode] = useState(false);
             const debounceRef = useRef();
 
             const searchAddress = useCallback(async (query) => {
@@ -1524,11 +1525,25 @@
                 setIsModalOpen(false);
                 setSearchQuery('');
                 setSuggestions([]);
+                setManualMode(false);
+            };
+
+            const useManualAddress = () => {
+                if (searchQuery.trim()) {
+                    onChange(searchQuery.trim());
+                    setIsVerified(true);
+                    setIsModalOpen(false);
+                    setSearchQuery('');
+                    setSuggestions([]);
+                    setSelectedCoords(null);
+                    setManualMode(false);
+                }
             };
 
             const openModal = () => {
                 setIsModalOpen(true);
                 setSearchQuery(value || '');
+                setManualMode(false);
                 if (value && value.length >= 3) searchAddress(value);
             };
 
@@ -1536,6 +1551,7 @@
                 setIsModalOpen(false);
                 setSearchQuery('');
                 setSuggestions([]);
+                setManualMode(false);
             };
 
             const getMapUrl = (lat, lon) => `https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(lon)-0.01},${parseFloat(lat)-0.005},${parseFloat(lon)+0.01},${parseFloat(lat)+0.005}&layer=mapnik&marker=${lat},${lon}`;
@@ -1599,10 +1615,17 @@
                                             ))}
                                         </div>
                                     ) : searchQuery.length >= 3 && !isLoading ? (
-                                        <div className="px-6 py-12 text-center">
+                                        <div className="px-6 py-8 text-center">
                                             <Icons.MapPin className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                                            <p className="text-slate-500">Keine Adressen gefunden</p>
-                                            <p className="text-sm text-slate-400 mt-1">Versuchen Sie eine andere Schreibweise</p>
+                                            <p className="text-slate-500 font-medium">Adresse nicht gefunden</p>
+                                            <p className="text-sm text-slate-400 mt-1 mb-4">Sie können die Adresse trotzdem übernehmen</p>
+                                            <button 
+                                                onClick={useManualAddress}
+                                                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2 mx-auto"
+                                            >
+                                                <Icons.Edit className="h-4 w-4" />
+                                                "{searchQuery}" übernehmen
+                                            </button>
                                         </div>
                                     ) : searchQuery.length < 3 ? (
                                         <div className="px-6 py-12 text-center">
@@ -1614,7 +1637,14 @@
                                 </div>
                                 <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                                     <span className="text-[10px] text-slate-400">Powered by OpenStreetMap</span>
-                                    <button onClick={closeModal} className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors">Abbrechen</button>
+                                    <div className="flex items-center gap-3">
+                                        {searchQuery.length >= 3 && (
+                                            <button onClick={useManualAddress} className="text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors">
+                                                Manuell übernehmen
+                                            </button>
+                                        )}
+                                        <button onClick={closeModal} className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors">Abbrechen</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
