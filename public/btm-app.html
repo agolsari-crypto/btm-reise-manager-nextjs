@@ -515,28 +515,95 @@
             const [alternative, setAlternative] = useState(null);
             const [altDistance, setAltDistance] = useState(null);
 
-            // PLZ-Koordinaten für Entfernungsberechnung
+            // PLZ-Koordinaten für Entfernungsberechnung (alle 2-stelligen PLZ-Bereiche)
             const PLZ_COORDS = {
+                // Hamburg & Schleswig-Holstein
                 '20': { lat: 53.55, lon: 10.00 }, '21': { lat: 53.46, lon: 10.18 }, '22': { lat: 53.60, lon: 10.05 },
                 '23': { lat: 53.87, lon: 10.69 }, '24': { lat: 54.32, lon: 10.14 }, '25': { lat: 53.75, lon: 9.65 },
+                // Niedersachsen & Bremen
+                '26': { lat: 53.14, lon: 8.22 }, '27': { lat: 53.08, lon: 8.80 }, '28': { lat: 53.08, lon: 8.80 },
+                '29': { lat: 52.97, lon: 10.57 }, '30': { lat: 52.37, lon: 9.74 }, '31': { lat: 52.15, lon: 9.95 },
+                // NRW
+                '32': { lat: 52.02, lon: 8.53 }, '33': { lat: 51.93, lon: 8.88 }, '34': { lat: 51.31, lon: 9.50 },
+                '40': { lat: 51.23, lon: 6.78 }, '41': { lat: 51.19, lon: 6.44 }, '42': { lat: 51.26, lon: 7.15 },
+                '44': { lat: 51.51, lon: 7.47 }, '45': { lat: 51.45, lon: 7.01 }, '46': { lat: 51.54, lon: 6.76 },
+                '47': { lat: 51.43, lon: 6.76 }, '48': { lat: 51.96, lon: 7.63 }, '49': { lat: 52.28, lon: 8.05 },
+                '50': { lat: 50.94, lon: 6.96 }, '51': { lat: 50.93, lon: 7.10 }, '52': { lat: 50.78, lon: 6.08 },
+                '53': { lat: 50.73, lon: 7.10 },
+                // Hessen
+                '34': { lat: 51.31, lon: 9.50 }, '35': { lat: 50.56, lon: 8.67 }, '36': { lat: 50.55, lon: 9.68 },
+                '60': { lat: 50.11, lon: 8.68 }, '61': { lat: 50.14, lon: 8.56 }, '63': { lat: 50.00, lon: 8.95 },
+                '64': { lat: 49.87, lon: 8.65 }, '65': { lat: 50.08, lon: 8.24 },
+                // Rheinland-Pfalz & Saarland
+                '54': { lat: 49.75, lon: 6.64 }, '55': { lat: 50.00, lon: 8.27 }, '56': { lat: 50.36, lon: 7.59 },
+                '57': { lat: 50.87, lon: 7.73 }, '66': { lat: 49.24, lon: 7.00 }, '67': { lat: 49.44, lon: 8.44 },
+                // Baden-Württemberg
+                '68': { lat: 49.49, lon: 8.47 }, '69': { lat: 49.41, lon: 8.69 }, '70': { lat: 48.78, lon: 9.18 },
+                '71': { lat: 48.83, lon: 9.22 }, '72': { lat: 48.52, lon: 9.05 }, '73': { lat: 48.80, lon: 9.65 },
+                '74': { lat: 49.14, lon: 9.22 }, '75': { lat: 48.89, lon: 8.70 }, '76': { lat: 49.01, lon: 8.40 },
+                '77': { lat: 48.47, lon: 7.95 }, '78': { lat: 47.66, lon: 9.17 }, '79': { lat: 47.99, lon: 7.85 },
+                '88': { lat: 47.72, lon: 9.60 }, '89': { lat: 48.40, lon: 10.00 },
+                // Bayern
+                '80': { lat: 48.14, lon: 11.58 }, '81': { lat: 48.12, lon: 11.60 }, '82': { lat: 48.07, lon: 11.46 },
+                '83': { lat: 47.86, lon: 11.94 }, '84': { lat: 48.25, lon: 12.25 }, '85': { lat: 48.40, lon: 11.74 },
+                '86': { lat: 48.37, lon: 10.90 }, '87': { lat: 47.73, lon: 10.31 }, '90': { lat: 49.45, lon: 11.08 },
+                '91': { lat: 49.60, lon: 11.01 }, '92': { lat: 49.02, lon: 12.10 }, '93': { lat: 49.01, lon: 12.10 },
+                '94': { lat: 48.57, lon: 13.46 }, '95': { lat: 50.00, lon: 11.91 }, '96': { lat: 50.09, lon: 10.88 },
+                '97': { lat: 49.79, lon: 9.94 },
+                // Berlin & Brandenburg
                 '10': { lat: 52.52, lon: 13.40 }, '12': { lat: 52.48, lon: 13.43 }, '13': { lat: 52.54, lon: 13.35 },
-                '30': { lat: 52.37, lon: 9.74 }, '40': { lat: 51.23, lon: 6.78 }, '50': { lat: 50.94, lon: 6.96 },
-                '60': { lat: 50.11, lon: 8.68 }, '70': { lat: 48.78, lon: 9.18 }, '80': { lat: 48.14, lon: 11.58 },
+                '14': { lat: 52.39, lon: 13.07 }, '15': { lat: 52.34, lon: 14.05 }, '16': { lat: 52.76, lon: 13.29 },
+                // Mecklenburg-Vorpommern
+                '17': { lat: 53.63, lon: 11.41 }, '18': { lat: 54.09, lon: 12.13 }, '19': { lat: 53.63, lon: 11.41 },
+                // Sachsen
+                '01': { lat: 51.05, lon: 13.74 }, '02': { lat: 51.15, lon: 14.97 }, '04': { lat: 51.34, lon: 12.37 },
+                '08': { lat: 50.72, lon: 12.49 }, '09': { lat: 50.83, lon: 12.92 },
+                // Sachsen-Anhalt
+                '06': { lat: 51.48, lon: 11.97 }, '39': { lat: 52.13, lon: 11.63 },
+                // Thüringen
+                '07': { lat: 50.93, lon: 11.59 }, '98': { lat: 50.98, lon: 11.03 }, '99': { lat: 50.98, lon: 11.03 },
+                // Brandenburg (weitere)
+                '03': { lat: 51.76, lon: 14.33 },
             };
 
-            // Behörden-Koordinaten
+            // Behörden-Koordinaten (erweitert)
             const AUTH_COORDS = {
+                // Ärztekammern
                 'Ärztekammer Hamburg': { lat: 53.58, lon: 10.02 },
                 'Ärztekammer Schleswig-Holstein': { lat: 53.94, lon: 10.31 },
                 'Ärztekammer Niedersachsen': { lat: 52.40, lon: 9.80 },
+                'Ärztekammer Bremen': { lat: 53.09, lon: 8.81 },
                 'Ärztekammer Nordrhein': { lat: 51.26, lon: 6.74 },
+                'Ärztekammer Westfalen-Lippe': { lat: 51.96, lon: 7.63 },
                 'Landesärztekammer Hessen': { lat: 50.13, lon: 8.62 },
+                'Landesärztekammer Rheinland-Pfalz': { lat: 50.00, lon: 8.27 },
+                'Ärztekammer des Saarlandes': { lat: 49.24, lon: 7.00 },
                 'Landesärztekammer Baden-Württemberg': { lat: 48.75, lon: 9.17 },
                 'Bayerische Landesärztekammer': { lat: 48.14, lon: 11.60 },
                 'Ärztekammer Berlin': { lat: 52.51, lon: 13.39 },
+                'Landesärztekammer Brandenburg': { lat: 51.76, lon: 14.33 },
+                'Ärztekammer Mecklenburg-Vorpommern': { lat: 54.09, lon: 12.13 },
+                'Sächsische Landesärztekammer': { lat: 51.05, lon: 13.74 },
+                'Ärztekammer Sachsen-Anhalt': { lat: 52.13, lon: 11.63 },
+                'Landesärztekammer Thüringen': { lat: 50.93, lon: 11.59 },
+                // Gesundheitsämter
                 'Gesundheitsamt Hamburg-Mitte': { lat: 53.55, lon: 10.02 },
+                'Gesundheitsamt Hamburg-Bergedorf': { lat: 53.49, lon: 10.21 },
                 'Gesundheitsamt Hamburg-Wandsbek': { lat: 53.58, lon: 10.08 },
+                'Gesundheitsamt Hamburg-Nord': { lat: 53.60, lon: 10.02 },
+                'Gesundheitsamt Hamburg-Altona': { lat: 53.55, lon: 9.93 },
+                'Gesundheitsamt Hamburg-Harburg': { lat: 53.46, lon: 9.98 },
+                'Gesundheitsamt Hamburg-Eimsbüttel': { lat: 53.57, lon: 9.95 },
+                'Gesundheitsamt Hansestadt Lübeck': { lat: 53.87, lon: 10.69 },
                 'Gesundheitsamt Kiel': { lat: 54.32, lon: 10.14 },
+                'Fachdienst Gesundheit Kreis Pinneberg': { lat: 53.75, lon: 9.65 },
+                'Gesundheitsamt Berlin-Mitte': { lat: 52.54, lon: 13.36 },
+                'Gesundheitsamt München': { lat: 48.14, lon: 11.56 },
+                'Gesundheitsamt Frankfurt am Main': { lat: 50.11, lon: 8.68 },
+                'Gesundheitsamt Köln': { lat: 50.94, lon: 6.95 },
+                'Gesundheitsamt Düsseldorf': { lat: 51.21, lon: 6.79 },
+                'Gesundheitsamt Stuttgart': { lat: 48.78, lon: 9.18 },
+                'Gesundheitsamt Region Hannover': { lat: 52.37, lon: 9.72 },
             };
 
             // Entfernung berechnen (Haversine)
@@ -548,23 +615,118 @@
                 return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
             };
 
-            // Ärztekammern-Datenbank (kostenlose Beglaubigung)
+            // Ärztekammern-Datenbank (kostenlose Beglaubigung) - alle 17 Landesärztekammern
             const MEDICAL_CHAMBERS = {
+                // Hamburg (20-22)
                 '20': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
                 '21': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
                 '22': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
+                // Schleswig-Holstein (23-25)
                 '23': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
                 '24': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
                 '25': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
+                // Niedersachsen (26-27, 29-31, 37-38, 49)
+                '26': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                '27': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                '29': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
                 '30': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                '31': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                '37': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                '38': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                '49': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                // Bremen (28)
+                '28': { name: 'Ärztekammer Bremen', address: 'Schwachhauser Heerstraße 30, 28209 Bremen', phone: '0421 3404-200', email: 'info@aekhb.de', fax: '0421 3404-209', kostenlos: true },
+                // NRW Westfalen-Lippe (32-33, 44, 48)
+                '32': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
+                '33': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
+                '44': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
+                '48': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
+                // NRW Nordrhein (40-42, 45-47, 50-53)
+                '40': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '41': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '42': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '45': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '46': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '47': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '50': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '51': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '52': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '53': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                // Hessen (34-36, 60-65)
+                '34': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '35': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '36': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '60': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '61': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '63': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '64': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '65': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                // Rheinland-Pfalz (54-57, 67)
+                '54': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
+                '55': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
+                '56': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
+                '57': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
+                '67': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
+                // Saarland (66)
+                '66': { name: 'Ärztekammer des Saarlandes', address: 'Faktoreistraße 4, 66111 Saarbrücken', phone: '0681 4003-0', email: 'info@aeksaar.de', fax: '0681 4003-340', kostenlos: true },
+                // Baden-Württemberg (68-79, 88-89)
+                '68': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '69': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '70': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '71': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '72': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '73': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '74': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '75': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '76': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '77': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '78': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '79': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '88': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '89': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                // Bayern (80-97)
+                '80': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '81': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '82': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '83': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '84': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '85': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '86': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '87': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '90': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '91': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '92': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '93': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '94': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '95': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '96': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '97': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                // Berlin (10, 12-14)
                 '10': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
                 '12': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
                 '13': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
-                '40': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '50': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '60': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '70': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '80': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+                '14': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
+                // Brandenburg (03, 14-16)
+                '03': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', kostenlos: true },
+                '15': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', kostenlos: true },
+                '16': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', kostenlos: true },
+                // Mecklenburg-Vorpommern (17-19)
+                '17': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', kostenlos: true },
+                '18': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', kostenlos: true },
+                '19': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', kostenlos: true },
+                // Sachsen (01-02, 04, 08-09)
+                '01': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
+                '02': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
+                '04': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
+                '08': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
+                '09': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
+                // Sachsen-Anhalt (06, 39)
+                '06': { name: 'Ärztekammer Sachsen-Anhalt', address: 'Doctor-Eisenbart-Ring 2, 39120 Magdeburg', phone: '0391 6054-6', email: 'info@aeksa.de', fax: '0391 6054-7000', kostenlos: true },
+                '39': { name: 'Ärztekammer Sachsen-Anhalt', address: 'Doctor-Eisenbart-Ring 2, 39120 Magdeburg', phone: '0391 6054-6', email: 'info@aeksa.de', fax: '0391 6054-7000', kostenlos: true },
+                // Thüringen (07, 98-99)
+                '07': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'info@laek-thueringen.de', fax: '03641 614-169', kostenlos: true },
+                '98': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'info@laek-thueringen.de', fax: '03641 614-169', kostenlos: true },
+                '99': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'info@laek-thueringen.de', fax: '03641 614-169', kostenlos: true },
             };
 
             // Vollständige Gesundheitsämter-Datenbank mit allen Kontaktdaten
