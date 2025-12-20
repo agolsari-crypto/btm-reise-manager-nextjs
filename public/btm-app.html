@@ -2300,6 +2300,10 @@
                     // Verwende activeFormData für alle Referenzen in dieser Funktion
                     const formData = activeFormData;
                     
+                    // Berechnete Werte für diese Funktion
+                    const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
+                    const validityEndDate = calculateEndDate(formData.travelStartDate, Math.min(formData.travelDuration, 30));
+                    
                     try {
                         const { jsPDF } = window.jspdf;
                         
