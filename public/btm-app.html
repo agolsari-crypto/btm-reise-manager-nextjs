@@ -2745,17 +2745,18 @@
                             
                             // Content Box
                             doc.setFillColor(...lightBlue);
-                            doc.rect(margin, y, contentWidth, 38, 'F');
+                            doc.rect(margin, y, contentWidth, 50, 'F');
                             doc.setDrawColor(...navy);
                             doc.setLineWidth(0.3);
-                            doc.rect(margin, y, contentWidth, 38, 'S');
+                            doc.rect(margin, y, contentWidth, 50, 'S');
                             
                             // Trennlinien (Grau)
                             doc.setDrawColor(...silver);
                             doc.setLineWidth(0.4);
-                            doc.line(margin + contentWidth / 2, y + 4, margin + contentWidth / 2, y + 34);
+                            doc.line(margin + contentWidth / 2, y + 4, margin + contentWidth / 2, y + 46);
                             doc.line(margin + 4, y + 14, margin + contentWidth - 4, y + 14);
                             doc.line(margin + 4, y + 26, margin + contentWidth - 4, y + 26);
+                            doc.line(margin + 4, y + 38, margin + contentWidth - 4, y + 38);
                             
                             drawField('Surname', 'Nachname', formData.patName || '—', col1, y + 4);
                             drawField('First Name', 'Vorname', formData.patFirstName || '—', col2, y + 4);
@@ -2763,9 +2764,10 @@
                             drawField('Passport / ID', 'Pass/Ausweis-Nr.', formData.patPassport || '—', col2, y + 17);
                             drawField('Nationality', 'Staatsangehörigkeit', formData.patNationality || 'German', col1, y + 29);
                             const sexDisplayAttest = formData.patSex === 'M' ? 'Male / Männlich' : formData.patSex === 'F' ? 'Female / Weiblich' : formData.patSex;
-                            drawField('Sex / Address', 'Geschlecht / Wohnanschrift', `${sexDisplayAttest || '—'} • ${formData.patAddress || '—'}`, col2, y + 29);
+                            drawField('Sex', 'Geschlecht', sexDisplayAttest || '—', col2, y + 29);
+                            drawField('Address', 'Wohnanschrift', formData.patAddress || '—', col1, y + 41);
                             
-                            y += 42;
+                            y += 54;
                             
                             // ===== REISEDAUER-BOX =====
                             doc.setFillColor(...lightBlue);
@@ -2917,12 +2919,6 @@
                             doc.setFontSize(13);
                             doc.setTextColor(...charcoal);
                             doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
-                            
-                            // Fortsetzungshinweis - Position anpassen um Überlappung zu vermeiden
-                            doc.setFont('helvetica', 'italic');
-                            doc.setFontSize(8);
-                            doc.setTextColor(...silver);
-                            doc.text('(Continued on page 2 / Fortsetzung auf Seite 2)', pageWidth / 2, pageHeight - 18, { align: 'center' });
                             
                             drawProfessionalFooter(1);
                             
