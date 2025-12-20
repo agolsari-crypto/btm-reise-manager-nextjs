@@ -510,6 +510,62 @@
             const [isSearching, setIsSearching] = useState(false);
             const [searchResult, setSearchResult] = useState(null);
             const [showManualInput, setShowManualInput] = useState(false);
+            const [authorityType, setAuthorityType] = useState('gesundheitsamt');
+            const [distance, setDistance] = useState(null);
+            const [alternative, setAlternative] = useState(null);
+            const [altDistance, setAltDistance] = useState(null);
+
+            // PLZ-Koordinaten für Entfernungsberechnung
+            const PLZ_COORDS = {
+                '20': { lat: 53.55, lon: 10.00 }, '21': { lat: 53.46, lon: 10.18 }, '22': { lat: 53.60, lon: 10.05 },
+                '23': { lat: 53.87, lon: 10.69 }, '24': { lat: 54.32, lon: 10.14 }, '25': { lat: 53.75, lon: 9.65 },
+                '10': { lat: 52.52, lon: 13.40 }, '12': { lat: 52.48, lon: 13.43 }, '13': { lat: 52.54, lon: 13.35 },
+                '30': { lat: 52.37, lon: 9.74 }, '40': { lat: 51.23, lon: 6.78 }, '50': { lat: 50.94, lon: 6.96 },
+                '60': { lat: 50.11, lon: 8.68 }, '70': { lat: 48.78, lon: 9.18 }, '80': { lat: 48.14, lon: 11.58 },
+            };
+
+            // Behörden-Koordinaten
+            const AUTH_COORDS = {
+                'Ärztekammer Hamburg': { lat: 53.58, lon: 10.02 },
+                'Ärztekammer Schleswig-Holstein': { lat: 53.94, lon: 10.31 },
+                'Ärztekammer Niedersachsen': { lat: 52.40, lon: 9.80 },
+                'Ärztekammer Nordrhein': { lat: 51.26, lon: 6.74 },
+                'Landesärztekammer Hessen': { lat: 50.13, lon: 8.62 },
+                'Landesärztekammer Baden-Württemberg': { lat: 48.75, lon: 9.17 },
+                'Bayerische Landesärztekammer': { lat: 48.14, lon: 11.60 },
+                'Ärztekammer Berlin': { lat: 52.51, lon: 13.39 },
+                'Gesundheitsamt Hamburg-Mitte': { lat: 53.55, lon: 10.02 },
+                'Gesundheitsamt Hamburg-Wandsbek': { lat: 53.58, lon: 10.08 },
+                'Gesundheitsamt Kiel': { lat: 54.32, lon: 10.14 },
+            };
+
+            // Entfernung berechnen (Haversine)
+            const calcDistance = (lat1, lon1, lat2, lon2) => {
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+                return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+            };
+
+            // Ärztekammern-Datenbank (kostenlose Beglaubigung)
+            const MEDICAL_CHAMBERS = {
+                '20': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
+                '21': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
+                '22': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
+                '23': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
+                '24': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
+                '25': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
+                '30': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
+                '10': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
+                '12': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
+                '13': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
+                '40': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '50': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
+                '60': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
+                '70': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
+                '80': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
+            };
 
             // Vollständige Gesundheitsämter-Datenbank mit allen Kontaktdaten
             const HEALTH_AUTHORITIES = {
@@ -718,38 +774,65 @@
             };
 
             const searchHealthAuthority = async () => {
-                if (plz.length < 4) return;
+                if (plz.length < 2) return;
                 setIsSearching(true);
                 setShowManualInput(false);
+                setDistance(null);
+                setAlternative(null);
+                setAltDistance(null);
                 
                 setTimeout(() => {
-                    // Zuerst nach vollständiger PLZ suchen
-                    let found = HEALTH_AUTHORITIES[plz];
+                    let found = null;
+                    let alt = null;
+                    const prefix = plz.substring(0, 2);
+                    const userCoords = PLZ_COORDS[prefix];
                     
-                    // Falls nicht gefunden, nach PLZ-Präfix suchen (erste 4 Stellen, dann 3, dann 2)
-                    if (!found && plz.length >= 4) {
-                        found = HEALTH_AUTHORITIES[plz.substring(0, 4)];
-                    }
-                    if (!found && plz.length >= 3) {
-                        found = HEALTH_AUTHORITIES[plz.substring(0, 3)];
-                    }
-                    if (!found && plz.length >= 2) {
-                        // Suche nach PLZ-Bereichen die mit den ersten 2 Stellen beginnen
-                        const prefix = plz.substring(0, 2);
-                        const matchingKey = Object.keys(HEALTH_AUTHORITIES).find(key => key.startsWith(prefix));
-                        if (matchingKey) {
-                            found = HEALTH_AUTHORITIES[matchingKey];
+                    if (authorityType === 'aerztekammer') {
+                        found = MEDICAL_CHAMBERS[prefix];
+                        const altKey = Object.keys(HEALTH_AUTHORITIES).find(k => k.startsWith(prefix));
+                        if (altKey) alt = HEALTH_AUTHORITIES[altKey];
+                    } else {
+                        found = HEALTH_AUTHORITIES[plz];
+                        if (!found && plz.length >= 4) found = HEALTH_AUTHORITIES[plz.substring(0, 4)];
+                        if (!found && plz.length >= 3) found = HEALTH_AUTHORITIES[plz.substring(0, 3)];
+                        if (!found) {
+                            const matchingKey = Object.keys(HEALTH_AUTHORITIES).find(key => key.startsWith(prefix));
+                            if (matchingKey) found = HEALTH_AUTHORITIES[matchingKey];
                         }
+                        alt = MEDICAL_CHAMBERS[prefix];
                     }
                     
                     if (found) {
                         setSearchResult(found);
+                        if (userCoords && AUTH_COORDS[found.name]) {
+                            const ac = AUTH_COORDS[found.name];
+                            setDistance(calcDistance(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
+                        }
                     } else {
                         setSearchResult(null);
                         setShowManualInput(true);
                     }
+                    
+                    if (alt) {
+                        setAlternative(alt);
+                        if (userCoords && AUTH_COORDS[alt.name]) {
+                            const ac = AUTH_COORDS[alt.name];
+                            setAltDistance(calcDistance(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
+                        }
+                    }
+                    
                     setIsSearching(false);
                 }, 500);
+            };
+
+            const switchToAlternative = () => {
+                if (alternative) {
+                    setSearchResult(alternative);
+                    setAlternative(null);
+                    setDistance(altDistance);
+                    setAltDistance(null);
+                    setAuthorityType(authorityType === 'aerztekammer' ? 'gesundheitsamt' : 'aerztekammer');
+                }
             };
 
             const selectAuthority = (authority) => {
@@ -760,16 +843,34 @@
 
             return (
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-5">
+                    <div className="mb-4 p-3 bg-white/80 rounded-xl border border-amber-100">
+                        <p className="text-xs text-slate-600">
+                            <span className="font-semibold text-amber-800">Beglaubigung:</span> Wählen Sie <strong>Gesundheitsamt</strong> (10-25€) oder <strong>Ärztekammer</strong> (kostenlos).
+                        </p>
+                    </div>
+                    
+                    <div className="flex gap-2 mb-4">
+                        <button onClick={() => setAuthorityType('gesundheitsamt')} className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${authorityType === 'gesundheitsamt' ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-300'}`}>
+                            Gesundheitsamt (10-25€)
+                        </button>
+                        <button onClick={() => setAuthorityType('aerztekammer')} className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${authorityType === 'aerztekammer' ? 'border-emerald-500 bg-emerald-100 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300'}`}>
+                            Ärztekammer (kostenlos)
+                        </button>
+                    </div>
+                    
                     <div className="flex items-center gap-2 mb-4">
                         <Icons.Building2 className="h-5 w-5 text-amber-600" />
-                        <span className="text-sm font-bold text-amber-800">Zuständiges Gesundheitsamt</span>
+                        <span className="text-sm font-bold text-amber-800">{authorityType === 'aerztekammer' ? 'Zuständige Ärztekammer' : 'Zuständiges Gesundheitsamt'}</span>
                     </div>
                     
                     {currentAuthority?.name ? (
-                        <div className="bg-white rounded-xl border border-amber-200 p-4 mb-4">
+                        <div className={`bg-white rounded-xl border ${currentAuthority.kostenlos ? 'border-emerald-200' : 'border-amber-200'} p-4 mb-4`}>
                             <div className="flex items-start justify-between">
                                 <div className="space-y-1">
-                                    <div className="font-bold text-slate-800">{currentAuthority.name}</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="font-bold text-slate-800">{currentAuthority.name}</div>
+                                        {currentAuthority.kostenlos && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">KOSTENLOS</span>}
+                                    </div>
                                     <div className="text-sm text-slate-600">{currentAuthority.address}</div>
                                     {currentAuthority.phone && (
                                         <div className="text-sm text-slate-600 flex items-center gap-2">
@@ -827,10 +928,11 @@
                     </div>
                     
                     {searchResult && (
-                        <div className="mt-4 bg-white rounded-xl border border-emerald-200 p-4 animate-slide-down">
-                            <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold mb-2">
+                        <div className={`mt-4 bg-white rounded-xl border ${searchResult.kostenlos ? 'border-emerald-200' : 'border-amber-200'} p-4 animate-slide-down`}>
+                            <div className={`flex items-center gap-2 ${searchResult.kostenlos ? 'text-emerald-600' : 'text-amber-600'} text-xs font-bold mb-2`}>
                                 <Icons.CheckCircle className="h-4 w-4" />
                                 Gefunden für PLZ {plz}
+                                {searchResult.kostenlos && <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">KOSTENLOS</span>}
                             </div>
                             <div className="space-y-1">
                                 <div className="font-bold text-slate-800">{searchResult.name}</div>
@@ -852,12 +954,50 @@
                                     </div>
                                 )}
                             </div>
+                            
+                            {distance !== null && (
+                                <div className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-lg ${distance > 50 ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 border border-slate-200'}`}>
+                                    <Icons.MapPin className={`h-4 w-4 ${distance > 50 ? 'text-amber-500' : 'text-slate-500'}`} />
+                                    <span className={`text-sm font-medium ${distance > 50 ? 'text-amber-700' : 'text-slate-700'}`}>ca. {distance} km entfernt</span>
+                                    {distance > 50 && <span className="text-xs text-amber-600">(weite Strecke)</span>}
+                                </div>
+                            )}
+                            
                             <button 
                                 onClick={() => selectAuthority(searchResult)}
-                                className="mt-3 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors"
+                                className={`mt-3 w-full py-2 ${searchResult.kostenlos ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-amber-500 hover:bg-amber-600'} text-white rounded-lg text-sm font-medium transition-colors`}
                             >
                                 Übernehmen
                             </button>
+                            
+                            {alternative && (
+                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                    <div className="text-xs text-slate-500 mb-2">
+                                        {authorityType === 'aerztekammer' ? 'Alternativ beim Gesundheitsamt (10-25€):' : 'Alternativ kostenlos bei der Ärztekammer:'}
+                                    </div>
+                                    <div className={`p-3 rounded-lg border ${authorityType === 'aerztekammer' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className="font-medium text-slate-800 text-sm">{alternative.name}</div>
+                                                <div className="text-xs text-slate-500">{alternative.address}</div>
+                                                {altDistance !== null && (
+                                                    <div className="flex items-center gap-1 mt-1">
+                                                        <Icons.MapPin className="h-3 w-3 text-slate-400" />
+                                                        <span className="text-xs text-slate-600">ca. {altDistance} km</span>
+                                                        {alternative.kostenlos && <span className="ml-2 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">KOSTENLOS</span>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button 
+                                                onClick={switchToAlternative}
+                                                className={`px-3 py-1.5 ${authorityType === 'aerztekammer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white rounded text-xs font-medium`}
+                                            >
+                                                Wechseln
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     
