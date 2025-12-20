@@ -504,113 +504,264 @@
             return end.toISOString().split('T')[0];
         };
 
-        // Gesundheitsamt Suche nach PLZ (via RKI PLZ-Tool Scraping Alternative)
+        // Gesundheitsamt UND Ärztekammer Suche nach PLZ mit Entfernungsberechnung
         const HealthAuthoritySearch = ({ onSelect, currentAuthority, isSchengen = true }) => {
             const [plz, setPlz] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             const [searchResult, setSearchResult] = useState(null);
+            const [alternativeResult, setAlternativeResult] = useState(null);
             const [showManualInput, setShowManualInput] = useState(false);
+            const [authorityType, setAuthorityType] = useState(null);
+            const [distance, setDistance] = useState(null);
+            const [altDistance, setAltDistance] = useState(null);
 
-            // Vollständige Gesundheitsämter-Datenbank mit allen Kontaktdaten
-            const HEALTH_AUTHORITIES = {
-                // Hamburg
-                '20095': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20097': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20099': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20144': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20146': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20148': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20149': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20249': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '20251': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '20253': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '20255': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '20257': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '20259': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '20354': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20355': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20357': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20359': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20457': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '20459': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
-                '21029': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
-                '21031': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
-                '21033': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
-                '21035': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
-                '21037': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
-                '21039': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
-                '21073': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '21075': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '21077': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '21079': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '21107': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '21109': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '21147': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '21149': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
-                '22041': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22043': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22045': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22047': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22049': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22081': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22083': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22085': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22087': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22089': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22111': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22113': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22115': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22117': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22119': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22143': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22145': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22147': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22149': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22159': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22175': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22177': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22179': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22297': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22299': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22301': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22303': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22305': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22307': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22309': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22335': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22337': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22339': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22359': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22391': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22393': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22395': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22397': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22399': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
-                '22415': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22417': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22419': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
-                '22453': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22455': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22457': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22459': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22523': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22525': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22527': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22529': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
-                '22547': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22549': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22559': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22587': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22589': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22605': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22607': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22609': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22761': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22763': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22765': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22767': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
-                '22769': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+            // PLZ-Koordinaten für Entfernungsberechnung
+            const PLZ_COORDS = {
+                '20': { lat: 53.55, lon: 10.00 }, '21': { lat: 53.46, lon: 10.18 }, '22': { lat: 53.60, lon: 10.05 },
+                '23': { lat: 53.87, lon: 10.69 }, '24': { lat: 54.32, lon: 10.14 }, '25': { lat: 53.75, lon: 9.65 },
+                '10': { lat: 52.52, lon: 13.40 }, '12': { lat: 52.48, lon: 13.43 }, '13': { lat: 52.54, lon: 13.35 },
+                '30': { lat: 52.37, lon: 9.74 }, '40': { lat: 51.23, lon: 6.78 }, '50': { lat: 50.94, lon: 6.96 },
+                '60': { lat: 50.11, lon: 8.68 }, '70': { lat: 48.78, lon: 9.18 }, '80': { lat: 48.14, lon: 11.58 },
             };
+
+            // Behörden-Koordinaten
+            const AUTH_COORDS = {
+                'Ärztekammer Hamburg': { lat: 53.58, lon: 10.02 },
+                'Ärztekammer Schleswig-Holstein': { lat: 53.94, lon: 10.31 },
+                'Ärztekammer Niedersachsen': { lat: 52.40, lon: 9.80 },
+                'Ärztekammer Nordrhein': { lat: 51.26, lon: 6.74 },
+                'Landesärztekammer Hessen': { lat: 50.13, lon: 8.62 },
+                'Bayerische Landesärztekammer': { lat: 48.14, lon: 11.60 },
+                'Ärztekammer Berlin': { lat: 52.51, lon: 13.39 },
+                'Gesundheitsamt Hamburg-Mitte': { lat: 53.55, lon: 10.02 },
+                'Gesundheitsamt Hamburg-Wandsbek': { lat: 53.58, lon: 10.08 },
+                'Gesundheitsamt Berlin-Mitte': { lat: 52.54, lon: 13.36 },
+                'Gesundheitsamt München': { lat: 48.14, lon: 11.56 },
+                'Gesundheitsamt Köln': { lat: 50.94, lon: 6.95 },
+            };
+
+            // Entfernung berechnen (Haversine)
+            const calcDist = (lat1, lon1, lat2, lon2) => {
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+                return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+            };
+
+            // Ärztekammern-Datenbank
+            const CHAMBERS = {
+                '20': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', kostenlos: true },
+                '21': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', kostenlos: true },
+                '22': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', kostenlos: true },
+                '23': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', kostenlos: true },
+                '24': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', kostenlos: true },
+                '25': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', kostenlos: true },
+                '30': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', kostenlos: true },
+                '40': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', kostenlos: true },
+                '50': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', kostenlos: true },
+                '60': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', kostenlos: true },
+                '70': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', kostenlos: true },
+                '80': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', kostenlos: true },
+                '10': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', kostenlos: true },
+                '12': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', kostenlos: true },
+                '13': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', kostenlos: true },
+            };
+
+            // Gesundheitsämter-Datenbank
+            const HEALTH = {
+                '20': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de' },
+                '21': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de' },
+                '22': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de' },
+                '23': { name: 'Gesundheitsamt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de' },
+                '24': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de' },
+                '25': { name: 'Gesundheitsamt Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de' },
+                '10': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de' },
+                '12': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de' },
+                '13': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de' },
+                '30': { name: 'Gesundheitsamt Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de' },
+                '40': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de' },
+                '50': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de' },
+                '60': { name: 'Gesundheitsamt Frankfurt', address: 'Breite Gasse 28, 60313 Frankfurt', phone: '069 212-36222', email: 'gesundheitsamt@stadt-frankfurt.de' },
+                '70': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de' },
+                '80': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de' },
+            };
+
+            const searchAuthority = () => {
+                if (plz.length < 2) return;
+                setIsSearching(true);
+                setSearchResult(null);
+                setAlternativeResult(null);
+                setDistance(null);
+                setAltDistance(null);
+                
+                setTimeout(() => {
+                    const prefix = plz.substring(0, 2);
+                    const userCoords = PLZ_COORDS[prefix];
+                    
+                    const primary = authorityType === 'aerztekammer' ? CHAMBERS[prefix] : HEALTH[prefix];
+                    const alt = authorityType === 'aerztekammer' ? HEALTH[prefix] : CHAMBERS[prefix];
+                    
+                    if (primary) {
+                        setSearchResult(primary);
+                        if (userCoords && AUTH_COORDS[primary.name]) {
+                            const ac = AUTH_COORDS[primary.name];
+                            setDistance(calcDist(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
+                        }
+                    } else {
+                        setShowManualInput(true);
+                    }
+                    
+                    if (alt) {
+                        setAlternativeResult(alt);
+                        if (userCoords && AUTH_COORDS[alt.name]) {
+                            const ac = AUTH_COORDS[alt.name];
+                            setAltDistance(calcDist(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
+                        }
+                    }
+                    setIsSearching(false);
+                }, 400);
+            };
+
+            const switchToAlt = () => {
+                if (alternativeResult) {
+                    const tmpRes = searchResult;
+                    const tmpDist = distance;
+                    setSearchResult(alternativeResult);
+                    setDistance(altDistance);
+                    setAlternativeResult(tmpRes);
+                    setAltDistance(tmpDist);
+                    setAuthorityType(authorityType === 'aerztekammer' ? 'gesundheitsamt' : 'aerztekammer');
+                }
+            };
+
+            const selectAuth = (auth) => {
+                onSelect(auth);
+                setSearchResult(null);
+                setAlternativeResult(null);
+                setShowManualInput(false);
+                setPlz('');
+                setAuthorityType(null);
+                setDistance(null);
+                setAltDistance(null);
+            };
+
+            return (
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-5">
+                    <div className="mb-4 p-3 bg-white/80 rounded-xl border border-amber-100">
+                        <div className="flex items-start gap-2">
+                            <Icons.Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-slate-600">
+                                <span className="font-semibold text-amber-800">Beglaubigung erforderlich:</span> BTM-Formular beglaubigen beim <strong>Gesundheitsamt</strong> (10-25€) oder <strong>Ärztekammer</strong> (kostenlos).
+                            </p>
+                        </div>
+                    </div>
+
+                    {currentAuthority?.name ? (
+                        <div className="bg-white rounded-xl border border-emerald-200 p-4 mb-4">
+                            <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-slate-800">{currentAuthority.name}</span>
+                                        {currentAuthority.kostenlos && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">KOSTENLOS</span>}
+                                    </div>
+                                    <div className="text-sm text-slate-600">{currentAuthority.address}</div>
+                                    {currentAuthority.phone && <div className="text-sm text-slate-500">Tel: {currentAuthority.phone}</div>}
+                                </div>
+                                <button onClick={() => { onSelect({ name: '', address: '', phone: '', email: '', fax: '' }); setAuthorityType(null); }} className="text-slate-400 hover:text-red-500"><Icons.X className="h-4 w-4" /></button>
+                            </div>
+                        </div>
+                    ) : !authorityType ? (
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <button onClick={() => setAuthorityType('gesundheitsamt')} className="p-3 bg-white rounded-xl border-2 border-amber-200 hover:border-amber-400 transition-all text-center">
+                                <Icons.Building2 className="h-6 w-6 text-amber-600 mx-auto mb-1" />
+                                <div className="font-semibold text-slate-800 text-sm">Gesundheitsamt</div>
+                                <div className="text-xs text-slate-500">10-25€ Gebühr</div>
+                            </button>
+                            <button onClick={() => setAuthorityType('aerztekammer')} className="p-3 bg-white rounded-xl border-2 border-emerald-200 hover:border-emerald-400 transition-all text-center relative">
+                                <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded-full">GRATIS</span>
+                                <Icons.Award className="h-6 w-6 text-emerald-600 mx-auto mb-1" />
+                                <div className="font-semibold text-slate-800 text-sm">Ärztekammer</div>
+                                <div className="text-xs text-emerald-600 font-medium">Kostenlos</div>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                {authorityType === 'aerztekammer' ? <Icons.Award className="h-4 w-4 text-emerald-600" /> : <Icons.Building2 className="h-4 w-4 text-amber-600" />}
+                                <span className="text-sm font-semibold text-slate-700">{authorityType === 'aerztekammer' ? 'Ärztekammer' : 'Gesundheitsamt'} suchen</span>
+                                <button onClick={() => { setAuthorityType(null); setSearchResult(null); setShowManualInput(false); setAlternativeResult(null); }} className="ml-auto text-xs text-slate-500 hover:text-slate-700">← Zurück</button>
+                            </div>
+                            <div className="flex gap-2">
+                                <input type="text" placeholder="PLZ eingeben..." value={plz} onChange={(e) => setPlz(e.target.value.replace(/\D/g, '').slice(0, 5))} onKeyDown={(e) => e.key === 'Enter' && searchAuthority()} className={`flex-1 px-3 py-2 rounded-lg border-2 ${authorityType === 'aerztekammer' ? 'border-emerald-200 focus:border-emerald-400' : 'border-amber-200 focus:border-amber-400'} outline-none text-sm`} />
+                                <button onClick={searchAuthority} disabled={plz.length < 2 || isSearching} className={`px-4 py-2 ${authorityType === 'aerztekammer' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-amber-500 hover:bg-amber-600'} disabled:bg-slate-300 text-white rounded-lg text-sm font-medium`}>{isSearching ? '...' : 'Suchen'}</button>
+                            </div>
+                            
+                            {searchResult && (
+                                <div className={`bg-white rounded-lg border ${authorityType === 'aerztekammer' ? 'border-emerald-200' : 'border-amber-200'} p-3`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Icons.CheckCircle className={`h-4 w-4 ${authorityType === 'aerztekammer' ? 'text-emerald-500' : 'text-amber-500'}`} />
+                                        <span className="text-xs font-bold text-slate-600">Gefunden</span>
+                                        {searchResult.kostenlos && <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">KOSTENLOS</span>}
+                                    </div>
+                                    <div className="font-semibold text-slate-800 text-sm">{searchResult.name}</div>
+                                    <div className="text-xs text-slate-600">{searchResult.address}</div>
+                                    <div className="text-xs text-slate-500">{searchResult.phone}</div>
+                                    
+                                    {distance !== null && (
+                                        <div className={`mt-2 flex items-center gap-2 px-2 py-1.5 rounded-lg ${distance > 50 ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+                                            <Icons.MapPin className={`h-4 w-4 ${distance > 50 ? 'text-amber-500' : 'text-emerald-500'}`} />
+                                            <span className={`text-xs font-medium ${distance > 50 ? 'text-amber-700' : 'text-emerald-700'}`}>ca. {distance} km entfernt</span>
+                                            {distance > 50 && <span className="text-xs text-amber-600">(weite Strecke)</span>}
+                                        </div>
+                                    )}
+                                    
+                                    <button onClick={() => selectAuth(searchResult)} className={`mt-2 w-full py-1.5 ${authorityType === 'aerztekammer' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-amber-500 hover:bg-amber-600'} text-white rounded text-sm font-medium`}>Übernehmen</button>
+                                    
+                                    {alternativeResult && (
+                                        <div className="mt-3 pt-3 border-t border-slate-200">
+                                            <div className="text-xs text-slate-500 mb-2">{authorityType === 'aerztekammer' ? 'Zu weit? Gesundheitsamt ist oft näher:' : 'Alternative – kostenlos bei der Ärztekammer:'}</div>
+                                            <div className={`p-2 rounded-lg border ${authorityType === 'aerztekammer' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <div className="font-medium text-slate-800 text-xs">{alternativeResult.name}</div>
+                                                        <div className="text-[10px] text-slate-500">{alternativeResult.address}</div>
+                                                        <div className="flex items-center gap-1 mt-1">
+                                                            {altDistance !== null && <><Icons.MapPin className="h-3 w-3 text-slate-400" /><span className="text-[10px] text-slate-600">ca. {altDistance} km</span></>}
+                                                            {alternativeResult.kostenlos && <span className="ml-1 px-1 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-bold rounded">KOSTENLOS</span>}
+                                                            {!alternativeResult.kostenlos && <span className="ml-1 text-[10px] text-amber-600">10-25€</span>}
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={switchToAlt} className={`px-3 py-1.5 ${authorityType === 'aerztekammer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white rounded text-xs font-medium`}>Wechseln</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
+                            {showManualInput && !searchResult && (
+                                <div className="bg-white rounded-lg border border-slate-200 p-3">
+                                    <div className="text-xs text-amber-600 font-semibold mb-2">Nicht gefunden – manuell eingeben:</div>
+                                    <input type="text" placeholder="Name" className="w-full px-2 py-1.5 mb-2 rounded border border-slate-200 text-sm" onChange={(e) => setSearchResult(prev => ({ ...prev, name: e.target.value }))} />
+                                    <input type="text" placeholder="Adresse" className="w-full px-2 py-1.5 mb-2 rounded border border-slate-200 text-sm" onChange={(e) => setSearchResult(prev => ({ ...prev, address: e.target.value }))} />
+                                    <input type="text" placeholder="Telefon" className="w-full px-2 py-1.5 mb-2 rounded border border-slate-200 text-sm" onChange={(e) => setSearchResult(prev => ({ ...prev, phone: e.target.value }))} />
+                                    <div className="flex gap-2">
+                                        <button onClick={() => { setShowManualInput(false); setSearchResult(null); }} className="flex-1 py-1.5 border border-slate-200 rounded text-sm">Abbrechen</button>
+                                        <button onClick={() => searchResult?.name && selectAuth(searchResult)} className="flex-1 py-1.5 bg-amber-500 text-white rounded text-sm font-medium">Übernehmen</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    
+                    <a href="https://tools.rki.de/plztool/" target="_blank" rel="noopener noreferrer" className="mt-3 flex items-center justify-center gap-1 text-xs text-amber-600 hover:text-amber-700">
+                        <Icons.ExternalLink className="h-3 w-3" />
+                        Alle Gesundheitsämter beim RKI
+                    </a>
+                </div>
+            );
+        };
 
         // Destination Search Komponente (Stadt/Land mit Autovervollständigung)
         const DestinationSearch = ({ onSelect, currentDestination, isSchengen }) => {
@@ -1254,10 +1405,8 @@
             const sigInputRef = useRef(null);
             const letterheadInputRef = useRef(null);
 
-            // Berechnete Werte - robuste Berechnung der täglichen Einheiten
-            const calculatedDailyCount = formData.medDailyCount || 
-                ((formData.doseMorning || 0) + (formData.doseNoon || 0) + (formData.doseEvening || 0));
-            const totalUnits = calculatedDailyCount * formData.travelDuration;
+            // Berechnete Werte
+            const totalUnits = formData.medDailyCount * formData.travelDuration;
             const totalSubstance = totalUnits * formData.medConcentration;
             const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
             const selectedDoctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
@@ -1434,8 +1583,7 @@
                                                 console.log('📄 Generating PDF after verified payment...');
                                                 console.log('📋 Using saved form data:', savedFormData);
                                                 console.log('🖊️ Using doctor assets:', Object.keys(loadedAssets));
-                                                // WICHTIG: Assets direkt übergeben, nicht auf State warten
-                                                generatePDF('bundle', savedFormData, loadedAssets);
+                                                generatePDF('bundle', savedFormData);
                                             }, 500);
                                         } else {
                                             console.error('❌ Zahlung nicht verifiziert:', result.error);
@@ -1598,15 +1746,6 @@
                 // Admin-Modus: Direkt PDF generieren ohne Zahlung
                 if (isAdminMode) {
                     console.log('Admin-Modus: PDFs werden ohne Zahlung generiert');
-                    console.log('📋 Aktuelle formData:', {
-                        medDailyCount: formData.medDailyCount,
-                        doseMorning: formData.doseMorning,
-                        doseNoon: formData.doseNoon,
-                        doseEvening: formData.doseEvening,
-                        medInstructions: formData.medInstructions,
-                        travelDuration: formData.travelDuration,
-                        medConcentration: formData.medConcentration
-                    });
                     generatePDF('bundle');
                     return;
                 }
@@ -1630,18 +1769,14 @@
             };
 
             // PDF Generation
-            const generatePDF = (type, overrideFormData = null, overrideAssets = null) => {
+            const generatePDF = (type, overrideFormData = null) => {
                 // Verwende übergebene Daten oder State
                 const activeFormData = overrideFormData || formData;
                 
                 if (!window.jspdf) { alert("PDF-Bibliothek wird noch geladen."); return; }
                 const doctor = DOCTORS.find(d => d.id === activeFormData.selectedDoctorId);
                 if (!doctor) { alert("Bitte wählen Sie einen Arzt aus."); return; }
-                
-                // Verwende übergebene Assets (wichtig für Stripe-Callback) oder State
-                const activeAssets = overrideAssets || doctorAssets;
-                const docAssets = activeAssets[doctor.id] || { signature: null, stamp: null, letterhead: null };
-                console.log('📋 generatePDF - Doctor:', doctor.id, '- Assets verfügbar:', !!docAssets.signature, !!docAssets.stamp);
+                const docAssets = doctorAssets[doctor.id] || { signature: null, stamp: null, letterhead: null };
                 setLoading(true);
                 
                 // Übersetzung Darreichungsform (Hartkapseln → Extended Release)
@@ -1693,63 +1828,6 @@
                     // Verwende activeFormData für alle Referenzen in dieser Funktion
                     const formData = activeFormData;
                     
-                    // WICHTIG: Berechne totalSubstance und endDate aus den übergebenen Formulardaten
-                    // Berechne medDailyCount aus Einzeldosen falls nicht gesetzt
-                    const dailyCount = formData.medDailyCount || 
-                        ((formData.doseMorning || 0) + (formData.doseNoon || 0) + (formData.doseEvening || 0));
-                    
-                    // Falls immer noch 0, parse aus medInstructions (z.B. "1-0-0")
-                    let finalDailyCount = dailyCount;
-                    if (finalDailyCount === 0 && formData.medInstructions) {
-                        const parts = formData.medInstructions.split('-').map(p => parseInt(p) || 0);
-                        finalDailyCount = parts.reduce((sum, val) => sum + val, 0);
-                    }
-                    
-                    // Fallback auf 1 wenn alles andere fehlschlägt und Dosierung angegeben wurde
-                    if (finalDailyCount === 0 && formData.medInstructions && formData.medInstructions !== '0-0-0') {
-                        finalDailyCount = 1;
-                    }
-                    
-                    // Prüfe ob Reisedauer > 30 Tage - Gesamtmenge auf 30 Tage begrenzen
-                    const maxDaysForMedication = 30;
-                    const actualTravelDuration = formData.travelDuration || 0;
-                    const effectiveDurationForMeds = Math.min(actualTravelDuration, maxDaysForMedication);
-                    const exceedsMaxDuration = actualTravelDuration > maxDaysForMedication;
-                    
-                    const localTotalUnits = finalDailyCount * effectiveDurationForMeds;
-                    const localTotalSubstance = localTotalUnits * (formData.medConcentration || 0);
-                    const localEndDate = calculateEndDate(formData.travelStartDate, actualTravelDuration);
-                    
-                    // Gültigkeitsdauer berechnen: 30 Tage für Schengen, 90 Tage für Non-Schengen
-                    const isSchengen = formData.countryType === 'schengen';
-                    const validityDays = isSchengen ? 30 : 90;
-                    const validityEndDate = calculateEndDate(formData.travelStartDate, validityDays);
-                    
-                    // Warnung anzeigen wenn Reisedauer > 30 Tage
-                    if (exceedsMaxDuration) {
-                        console.warn('⚠️ Reisedauer überschreitet 30 Tage - Medikamentenmenge auf 30 Tage begrenzt');
-                        alert(`⚠️ Hinweis: Ihre Reisedauer beträgt ${actualTravelDuration} Tage.\n\nDie Gesamtmenge des Medikaments wurde auf maximal 30 Tage begrenzt (${localTotalSubstance} mg).\n\nFür längere Reisen benötigen Sie ggf. eine Nachverordnung vor Ort oder müssen mehrere Bescheinigungen beantragen.`);
-                    }
-                    
-                    console.log('📊 PDF Berechnungen:', {
-                        medDailyCount: formData.medDailyCount,
-                        doseMorning: formData.doseMorning,
-                        doseNoon: formData.doseNoon,
-                        doseEvening: formData.doseEvening,
-                        medInstructions: formData.medInstructions,
-                        finalDailyCount: finalDailyCount,
-                        travelDuration: actualTravelDuration,
-                        effectiveDurationForMeds: effectiveDurationForMeds,
-                        exceedsMaxDuration: exceedsMaxDuration,
-                        medConcentration: formData.medConcentration,
-                        totalUnits: localTotalUnits,
-                        totalSubstance: localTotalSubstance,
-                        endDate: localEndDate,
-                        isSchengen: isSchengen,
-                        validityDays: validityDays,
-                        validityEndDate: validityEndDate
-                    });
-                    
                     try {
                         const { jsPDF } = window.jspdf;
                         
@@ -1786,10 +1864,10 @@
                             formData.medTradeName,
                             `${formData.medSubstance} ${formData.medConcentration}mg`,
                             `Dosis: ${formData.medInstructions}`,
-                            `Menge: ${localTotalSubstance}mg`,
+                            `Menge: ${totalSubstance}mg`,
                             '',
                             'GUELTIG',
-                            `${formData.travelStartDate} - ${localEndDate}`,
+                            `${formData.travelStartDate} - ${endDate}`,
                             `${formData.travelDuration} Tage`,
                             '',
                             'ARZT',
@@ -2059,11 +2137,11 @@
                                     doc.setTextColor(...silver);
                                     doc.text(securityHash, x + width - 6, y + 22, { align: 'right' });
                                 } else {
-                                    // Platzhalter wenn kein Bild: Ausgewählter Arzt
+                                    // Platzhalter wenn kein Bild: Arzt-Initialen
                                     doc.setFont('helvetica', 'bold');
-                                    doc.setFontSize(12);
+                                    doc.setFontSize(16);
                                     doc.setTextColor(...navy);
-                                    doc.text(doctor.name || 'Dr. med.', x + width / 2, y + 12, { align: 'center' });
+                                    doc.text('Dr. A. Golsari', x + width / 2, y + 12, { align: 'center' });
                                     doc.setFont('helvetica', 'italic');
                                     doc.setFontSize(7);
                                     doc.setTextColor(...silver);
@@ -2212,74 +2290,48 @@
                             
                             y += 42;
                             
-                            // ===== REISEDAUER-BOX (3 Spalten) =====
+                            // ===== REISEDAUER-BOX =====
                             doc.setFillColor(...white);
-                            doc.roundedRect(margin, y, contentWidth, 22, 2, 2, 'F');
+                            doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
                             doc.setDrawColor(...navy);
                             doc.setLineWidth(0.5);
-                            doc.roundedRect(margin, y, contentWidth, 22, 2, 2, 'S');
+                            doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'S');
                             
-                            // Trennlinien für 3 Spalten
+                            // Graue Trennlinie in der Mitte
                             doc.setDrawColor(...silver);
                             doc.setLineWidth(0.8);
-                            doc.line(margin + contentWidth / 3, y + 3, margin + contentWidth / 3, y + 19);
-                            doc.line(margin + contentWidth * 2 / 3, y + 3, margin + contentWidth * 2 / 3, y + 19);
+                            doc.line(margin + contentWidth / 2, y + 3, margin + contentWidth / 2, y + 17);
                             
-                            // SPALTE 1: Reiseziel
+                            // Travel Duration
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
                             doc.setTextColor(...navy);
-                            doc.text('DESTINATION', margin + contentWidth / 6, y + 6, { align: 'center' });
+                            doc.text('TRAVEL DURATION', margin + contentWidth / 4, y + 6, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Reiseziel', margin + contentWidth / 6, y + 10, { align: 'center' });
+                            doc.text('Reisedauer', margin + contentWidth / 4, y + 10, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(9);
+                            doc.setFontSize(13);
                             doc.setTextColor(...charcoal);
-                            const attestDestText = formData.destinationCity && formData.destination 
-                                ? `${formData.destinationCity}, ${formData.destination}`
-                                : formData.destination || '—';
-                            // Kürzen wenn zu lang
-                            const attestDestShort = attestDestText.length > 24 ? attestDestText.substring(0, 23) + '…' : attestDestText;
-                            doc.text(attestDestShort, margin + contentWidth / 6, y + 17, { align: 'center' });
+                            doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth / 4, y + 17, { align: 'center' });
                             
-                            // SPALTE 2: Reisedauer mit Datum
-                            doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(7);
-                            doc.setTextColor(...navy);
-                            doc.text('TRAVEL PERIOD', margin + contentWidth / 2, y + 6, { align: 'center' });
-                            doc.setFont('helvetica', 'italic');
-                            doc.setFontSize(5);
-                            doc.setTextColor(...silver);
-                            doc.text('Reisezeitraum', margin + contentWidth / 2, y + 10, { align: 'center' });
-                            doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(8);
-                            doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || '—'} - ${localEndDate}`, margin + contentWidth / 2, y + 15, { align: 'center' });
-                            doc.setFontSize(7);
-                            doc.setTextColor(...gold);
-                            doc.text(`(${formData.travelDuration || '—'} Days)`, margin + contentWidth / 2, y + 19, { align: 'center' });
-                            
-                            // SPALTE 3: Validity Period
+                            // Validity Period
                             const today = new Date().toISOString().split('T')[0];
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
                             doc.setTextColor(...navy);
-                            doc.text('VALIDITY', margin + contentWidth * 5 / 6, y + 6, { align: 'center' });
+                            doc.text('VALIDITY PERIOD', margin + contentWidth * 3 / 4, y + 6, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Gültigkeit', margin + contentWidth * 5 / 6, y + 10, { align: 'center' });
+                            doc.text('Gültigkeitszeitraum', margin + contentWidth * 3 / 4, y + 10, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(8);
+                            doc.setFontSize(9);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today}`, margin + contentWidth * 5 / 6, y + 15, { align: 'center' });
-                            doc.setFontSize(7);
-                            doc.setTextColor(...gold);
-                            doc.text(`- ${validityEndDate}`, margin + contentWidth * 5 / 6, y + 19, { align: 'center' });
+                            doc.text(`${formData.travelStartDate || today} - ${endDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
                             
-                            y += 26;
+                            y += 24;
                             
                             // ===== MEDIKAMENTEN-TABELLE =====
                             doc.setFillColor(...navy);
@@ -2359,7 +2411,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(12);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${localTotalSubstance}mg ${formData.medSubstance || ''}`, margin + contentWidth / 4, y + 17, { align: 'center' });
+                            doc.text(`${totalSubstance}mg ${formData.medSubstance || ''}`, margin + contentWidth / 4, y + 17, { align: 'center' });
                             
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
@@ -2466,10 +2518,10 @@
                                 formData.medTradeName,
                                 `${formData.medSubstance} ${formData.medConcentration}mg`,
                                 `Dosis: ${formData.medInstructions}`,
-                                `Menge: ${localTotalSubstance}mg`,
+                                `Menge: ${totalSubstance}mg`,
                                 '',
                                 'GUELTIG',
-                                `${formData.travelStartDate} - ${localEndDate}`,
+                                `${formData.travelStartDate} - ${endDate}`,
                                 `${formData.travelDuration} Tage`,
                                 '',
                                 'ARZT',
@@ -2688,11 +2740,11 @@
                                         btmDoc.setTextColor(...silver);
                                         btmDoc.text(btmSecurityHash, x + width - 5, y + 21, { align: 'right' });
                                     } else {
-                                        // Platzhalter wenn kein Bild: Ausgewählter Arzt
+                                        // Platzhalter wenn kein Bild: Arzt-Initialen
                                         btmDoc.setFont('helvetica', 'bold');
-                                        btmDoc.setFontSize(11);
+                                        btmDoc.setFontSize(14);
                                         btmDoc.setTextColor(...navy);
-                                        btmDoc.text(doctor.name || 'Dr. med.', x + width / 2, y + 11, { align: 'center' });
+                                        btmDoc.text('Dr. A. Golsari', x + width / 2, y + 11, { align: 'center' });
                                         btmDoc.setFont('helvetica', 'italic');
                                         btmDoc.setFontSize(6);
                                         btmDoc.setTextColor(...silver);
@@ -2768,91 +2820,60 @@
                                 drawPremiumField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
-                                // Geschlecht mit robustem Fallback
-                                let sexDisplay = '—';
-                                if (formData.patSex === 'M') sexDisplay = 'Männlich (Male)';
-                                else if (formData.patSex === 'F') sexDisplay = 'Weiblich (Female)';
-                                else if (formData.patSex === 'D') sexDisplay = 'Divers (Diverse)';
-                                else if (formData.patSex) sexDisplay = formData.patSex;
-                                console.log('🚻 Geschlecht:', formData.patSex, '→', sexDisplay);
+                                const sexDisplay = formData.patSex === 'M' ? 'Männlich (Male)' : formData.patSex === 'F' ? 'Weiblich (Female)' : formData.patSex;
                                 drawPremiumField('Geschlecht', 'Sex', sexDisplay, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
                                 drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 50, y);
                                 
-                                // Reisedauer & Reiseziel Box - Dezentes Design
+                                // Reisedauer Box - Dezentes Design
                                 y += 14;
-                                // Hauptbox mit lightBlue Hintergrund (größer für 3 Felder)
+                                // Hauptbox mit lightBlue Hintergrund
                                 btmDoc.setFillColor(...lightBlue);
-                                btmDoc.roundedRect(margin, y, contentWidth, 18, 1.5, 1.5, 'F');
+                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
                                 // Navy Rahmen (dezenter)
                                 btmDoc.setDrawColor(...navy);
                                 btmDoc.setLineWidth(0.5);
-                                btmDoc.roundedRect(margin, y, contentWidth, 18, 1.5, 1.5, 'S');
+                                btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
                                 // Gold-Akzent oben (dezenter)
                                 btmDoc.setFillColor(...gold);
                                 btmDoc.rect(margin + 3, y + 1, contentWidth - 6, 0.6, 'F');
-                                // Trennlinien für 3 Spalten
+                                // Trennlinie
                                 btmDoc.setDrawColor(...gold);
                                 btmDoc.setLineWidth(0.4);
-                                btmDoc.line(margin + 55, y + 3.5, margin + 55, y + 14.5);
-                                btmDoc.line(margin + 115, y + 3.5, margin + 115, y + 14.5);
-                                
-                                // FELD 1: Reiseziel
+                                btmDoc.line(margin + 85, y + 3.5, margin + 85, y + 12.5);
+                                // Felder
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(5.5);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEZIEL', margin + 4, y + 5.5);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(4.5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Destination', margin + 4, y + 8);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(8);
-                                btmDoc.setTextColor(...navy);
-                                const schengenDestText = formData.destinationCity && formData.destination 
-                                    ? `${formData.destinationCity}, ${formData.destination}`
-                                    : formData.destination || '—';
-                                // Text kürzen wenn zu lang
-                                const maxDestLen = 22;
-                                const shortDestText = schengenDestText.length > maxDestLen 
-                                    ? schengenDestText.substring(0, maxDestLen - 1) + '…' 
-                                    : schengenDestText;
-                                btmDoc.text(shortDestText, margin + 4, y + 13);
-                                
-                                // FELD 2: Reisedauer mit Datum
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(5.5);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEDAUER', margin + 59, y + 5.5);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(4.5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Travel Period', margin + 59, y + 8);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(7.5);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate} - ${localEndDate}`, margin + 59, y + 12);
                                 btmDoc.setFontSize(6);
-                                btmDoc.setTextColor(...gold);
-                                btmDoc.text(`(${formData.travelDuration} Tage)`, margin + 59, y + 15.5);
-                                
-                                // FELD 3: Gültigkeitszeitraum - 30 Tage für Schengen
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(5.5);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('GÜLTIGKEIT', margin + 119, y + 5.5);
+                                btmDoc.text('REISEDAUER', margin + 8, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(4.5);
+                                btmDoc.setFontSize(5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Validity', margin + 119, y + 8);
+                                btmDoc.text('Travel Duration', margin + 8, y + 8.5);
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(8);
+                                btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate}`, margin + 119, y + 12);
-                                btmDoc.setFontSize(7);
+                                btmDoc.text(`${formData.travelDuration} Tage / Days`, margin + 8, y + 13.5);
+                                // Gültigkeitszeitraum
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('GÜLTIGKEITSZEITRAUM', margin + 90, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Validity Period', margin + 90, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(10);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate}`, margin + 90, y + 13.5);
+                                btmDoc.setFontSize(9);
                                 btmDoc.setTextColor(...gold);
-                                btmDoc.text(` - ${validityEndDate}`, margin + 145, y + 12);
+                                btmDoc.text(' - ', margin + 120, y + 13.5);
+                                btmDoc.setFontSize(10);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${endDate}`, margin + 127, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
@@ -2893,7 +2914,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${localTotalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
+                                btmDoc.text(`${totalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
                                 // Reichdauer
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
@@ -2934,7 +2955,7 @@
                                 btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${validityEndDate}`, pageWidth - margin, 17, { align: 'right' });
+                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${endDate}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // SEKTION D - Behörde
                                 y = 28;
@@ -3296,11 +3317,10 @@
                                     } else if (docAssets.stamp) {
                                         tryAddImageBtm(docAssets.stamp, x + (width - 30) / 2, yPos + 4, 30, 17);
                                     } else {
-                                        // Platzhalter wenn kein Bild: Ausgewählter Arzt
                                         btmDoc.setFont('helvetica', 'bold');
-                                        btmDoc.setFontSize(10);
+                                        btmDoc.setFontSize(12);
                                         btmDoc.setTextColor(...navy);
-                                        btmDoc.text(doctor.name || 'Dr. med.', x + width / 2, yPos + 11, { align: 'center' });
+                                        btmDoc.text('Dr. A. Golsari', x + width / 2, yPos + 11, { align: 'center' });
                                         btmDoc.setFont('helvetica', 'italic');
                                         btmDoc.setFontSize(6);
                                         btmDoc.setTextColor(...silver);
@@ -3351,13 +3371,7 @@
                                 drawNonSchengenField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
-                                // Geschlecht mit robustem Fallback
-                                let sexDisplayNonSchengen = '—';
-                                if (formData.patSex === 'M') sexDisplayNonSchengen = 'Männlich (Male)';
-                                else if (formData.patSex === 'F') sexDisplayNonSchengen = 'Weiblich (Female)';
-                                else if (formData.patSex === 'D') sexDisplayNonSchengen = 'Divers (Diverse)';
-                                else if (formData.patSex) sexDisplayNonSchengen = formData.patSex;
-                                drawNonSchengenField('Geschlecht', 'Sex', sexDisplayNonSchengen, margin + 80, y);
+                                drawNonSchengenField('Geschlecht', 'Sex', formData.patGender === 'male' ? 'Männlich (Male)' : formData.patGender === 'female' ? 'Weiblich (Female)' : 'Divers (Diverse)', margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
                                 drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 55, y);
@@ -3405,13 +3419,13 @@
                                 btmDoc.setTextColor(...navy);
                                 btmDoc.text(`${formData.travelDuration} Days`, margin + 90, y + 13.5);
                                 
-                                // Gültigkeitszeitraum - 90 Tage für Non-Schengen
+                                // Gültigkeitszeitraum
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.text('VALIDITY', margin + 130, y + 5.5);
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(9);
-                                btmDoc.text(`${formData.travelStartDate} - ${validityEndDate}`, margin + 130, y + 12);
+                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 130, y + 12);
                                 
                                 // SEKTION C - Medikamente
                                 y += 22;
@@ -3446,7 +3460,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(11);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${localTotalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
+                                btmDoc.text(`${totalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
                                 
                                 // Trennlinie
                                 btmDoc.setDrawColor(...gold);
@@ -3698,7 +3712,7 @@
                                             btmPdfBase64: btmPdfBase64,
                                             attestPdfBase64: attestPdfBase64,
                                             travelStartDate: formData.travelStartDate,
-                                            travelEndDate: localEndDate,
+                                            travelEndDate: endDate,
                                             destination: formData.destination,
                                             // Zahlungsinformationen für Buchhaltung
                                             paymentAmount: isAdminMode ? null : PRICES.bundle.toFixed(2),
