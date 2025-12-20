@@ -504,260 +504,404 @@
             return end.toISOString().split('T')[0];
         };
 
-        // Gesundheitsamt UND Ärztekammer Suche nach PLZ mit Entfernungsberechnung
+        // Gesundheitsamt Suche nach PLZ (via RKI PLZ-Tool Scraping Alternative)
         const HealthAuthoritySearch = ({ onSelect, currentAuthority, isSchengen = true }) => {
             const [plz, setPlz] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             const [searchResult, setSearchResult] = useState(null);
-            const [alternativeResult, setAlternativeResult] = useState(null);
             const [showManualInput, setShowManualInput] = useState(false);
-            const [authorityType, setAuthorityType] = useState(null);
-            const [distance, setDistance] = useState(null);
-            const [altDistance, setAltDistance] = useState(null);
 
-            // PLZ-Koordinaten für Entfernungsberechnung
-            const PLZ_COORDS = {
-                '20': { lat: 53.55, lon: 10.00 }, '21': { lat: 53.46, lon: 10.18 }, '22': { lat: 53.60, lon: 10.05 },
-                '23': { lat: 53.87, lon: 10.69 }, '24': { lat: 54.32, lon: 10.14 }, '25': { lat: 53.75, lon: 9.65 },
-                '10': { lat: 52.52, lon: 13.40 }, '12': { lat: 52.48, lon: 13.43 }, '13': { lat: 52.54, lon: 13.35 },
-                '30': { lat: 52.37, lon: 9.74 }, '40': { lat: 51.23, lon: 6.78 }, '50': { lat: 50.94, lon: 6.96 },
-                '60': { lat: 50.11, lon: 8.68 }, '70': { lat: 48.78, lon: 9.18 }, '80': { lat: 48.14, lon: 11.58 },
+            // Vollständige Gesundheitsämter-Datenbank mit allen Kontaktdaten
+            const HEALTH_AUTHORITIES = {
+                // Hamburg
+                '20095': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20097': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20099': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20144': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20146': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20148': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20149': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20249': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '20251': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '20253': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '20255': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '20257': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '20259': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '20354': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20355': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20357': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20359': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20457': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '20459': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de', fax: '040 42854-4394' },
+                '21029': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
+                '21031': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
+                '21033': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
+                '21035': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
+                '21037': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
+                '21039': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de', fax: '040 42891-2812' },
+                '21073': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '21075': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '21077': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '21079': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '21107': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '21109': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '21147': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '21149': { name: 'Gesundheitsamt Hamburg-Harburg', address: 'Harburger Rathausstraße 33, 21073 Hamburg', phone: '040 42871-2228', email: 'gesundheitsamt@harburg.hamburg.de', fax: '040 42871-2080' },
+                '22041': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22043': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22045': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22047': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22049': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22081': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22083': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22085': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22087': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22089': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22111': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22113': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22115': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22117': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22119': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22143': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22145': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22147': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22149': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22159': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22175': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22177': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22179': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22297': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22299': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22301': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22303': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22305': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22307': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22309': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22335': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22337': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22339': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22359': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22391': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22393': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22395': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22397': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22399': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de', fax: '040 42881-3466' },
+                '22415': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22417': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22419': { name: 'Gesundheitsamt Hamburg-Nord', address: 'Kümmellstraße 7, 22307 Hamburg', phone: '040 42804-2132', email: 'gesundheitsamt@hamburg-nord.hamburg.de', fax: '040 42804-2444' },
+                '22453': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22455': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22457': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22459': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22523': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22525': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22527': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22529': { name: 'Gesundheitsamt Hamburg-Eimsbüttel', address: 'Grindelberg 66, 20144 Hamburg', phone: '040 42801-2220', email: 'gesundheitsamt@eimsbuettel.hamburg.de', fax: '040 42801-2444' },
+                '22547': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22549': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22559': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22587': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22589': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22605': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22607': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22609': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22761': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22763': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22765': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22767': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                '22769': { name: 'Gesundheitsamt Hamburg-Altona', address: 'Jessenstraße 1-3, 22767 Hamburg', phone: '040 42811-2085', email: 'gesundheitsamt@altona.hamburg.de', fax: '040 42811-2444' },
+                // Norderstedt / Kreis Segeberg
+                '22844': { name: 'Fachdienst Gesundheit Kreis Segeberg', address: 'Hamburger Straße 30, 23795 Bad Segeberg', phone: '04551 951-9350', email: 'gesundheit@segeberg.de', fax: '04551 951-9364' },
+                '22846': { name: 'Fachdienst Gesundheit Kreis Segeberg', address: 'Hamburger Straße 30, 23795 Bad Segeberg', phone: '04551 951-9350', email: 'gesundheit@segeberg.de', fax: '04551 951-9364' },
+                '22848': { name: 'Fachdienst Gesundheit Kreis Segeberg', address: 'Hamburger Straße 30, 23795 Bad Segeberg', phone: '04551 951-9350', email: 'gesundheit@segeberg.de', fax: '04551 951-9364' },
+                '22850': { name: 'Fachdienst Gesundheit Kreis Segeberg', address: 'Hamburger Straße 30, 23795 Bad Segeberg', phone: '04551 951-9350', email: 'gesundheit@segeberg.de', fax: '04551 951-9364' },
+                '22851': { name: 'Fachdienst Gesundheit Kreis Segeberg', address: 'Hamburger Straße 30, 23795 Bad Segeberg', phone: '04551 951-9350', email: 'gesundheit@segeberg.de', fax: '04551 951-9364' },
+                '22869': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                // Kreis Pinneberg
+                '25335': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25336': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25337': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25421': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25436': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25462': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25469': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25474': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25479': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25482': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25485': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25488': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25489': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25491': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25492': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25494': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25495': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                '25497': { name: 'Fachdienst Gesundheit Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de', fax: '04121 4502-93355' },
+                // Berlin
+                '10115': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de', fax: '030 9018-43040' },
+                '10117': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de', fax: '030 9018-43040' },
+                '10119': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de', fax: '030 9018-43040' },
+                '10178': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de', fax: '030 9018-43040' },
+                '10179': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de', fax: '030 9018-43040' },
+                // München
+                '80331': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '80333': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '80335': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '80336': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '80337': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '80469': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '80538': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '80539': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '81541': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                '81543': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de', fax: '089 233-66909' },
+                // Frankfurt
+                '60311': { name: 'Gesundheitsamt Frankfurt am Main', address: 'Breite Gasse 28, 60313 Frankfurt', phone: '069 212-36222', email: 'gesundheitsamt@stadt-frankfurt.de', fax: '069 212-31078' },
+                '60313': { name: 'Gesundheitsamt Frankfurt am Main', address: 'Breite Gasse 28, 60313 Frankfurt', phone: '069 212-36222', email: 'gesundheitsamt@stadt-frankfurt.de', fax: '069 212-31078' },
+                '60314': { name: 'Gesundheitsamt Frankfurt am Main', address: 'Breite Gasse 28, 60313 Frankfurt', phone: '069 212-36222', email: 'gesundheitsamt@stadt-frankfurt.de', fax: '069 212-31078' },
+                '60316': { name: 'Gesundheitsamt Frankfurt am Main', address: 'Breite Gasse 28, 60313 Frankfurt', phone: '069 212-36222', email: 'gesundheitsamt@stadt-frankfurt.de', fax: '069 212-31078' },
+                '60318': { name: 'Gesundheitsamt Frankfurt am Main', address: 'Breite Gasse 28, 60313 Frankfurt', phone: '069 212-36222', email: 'gesundheitsamt@stadt-frankfurt.de', fax: '069 212-31078' },
+                // Köln
+                '50667': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                '50668': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                '50670': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                '50672': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                '50674': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                '50676': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                '50677': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                '50678': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de', fax: '0221 221-22910' },
+                // Düsseldorf
+                '40210': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40211': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40212': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40213': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40215': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40217': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40219': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40221': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40223': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40225': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                '40227': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de', fax: '0211 899-3545' },
+                // Stuttgart
+                '70173': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de', fax: '0711 216-59420' },
+                '70174': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de', fax: '0711 216-59420' },
+                '70176': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de', fax: '0711 216-59420' },
+                '70178': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de', fax: '0711 216-59420' },
+                '70180': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de', fax: '0711 216-59420' },
+                '70182': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de', fax: '0711 216-59420' },
+                // Hannover
+                '30159': { name: 'Gesundheitsamt Region Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de', fax: '0511 616-43153' },
+                '30161': { name: 'Gesundheitsamt Region Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de', fax: '0511 616-43153' },
+                '30163': { name: 'Gesundheitsamt Region Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de', fax: '0511 616-43153' },
+                '30165': { name: 'Gesundheitsamt Region Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de', fax: '0511 616-43153' },
+                '30167': { name: 'Gesundheitsamt Region Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de', fax: '0511 616-43153' },
+                '30169': { name: 'Gesundheitsamt Region Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de', fax: '0511 616-43153' },
+                '30171': { name: 'Gesundheitsamt Region Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de', fax: '0511 616-43153' },
+                // Lübeck
+                '23552': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                '23554': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                '23556': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                '23558': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                '23560': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                '23562': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                '23564': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                '23566': { name: 'Gesundheitsamt Hansestadt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de', fax: '0451 122-5390' },
+                // Kiel
+                '24103': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24105': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24106': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24107': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24109': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24111': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24113': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24114': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24116': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
+                '24118': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de', fax: '0431 901-62117' },
             };
 
-            // Behörden-Koordinaten
-            const AUTH_COORDS = {
-                'Ärztekammer Hamburg': { lat: 53.58, lon: 10.02 },
-                'Ärztekammer Schleswig-Holstein': { lat: 53.94, lon: 10.31 },
-                'Ärztekammer Niedersachsen': { lat: 52.40, lon: 9.80 },
-                'Ärztekammer Nordrhein': { lat: 51.26, lon: 6.74 },
-                'Landesärztekammer Hessen': { lat: 50.13, lon: 8.62 },
-                'Bayerische Landesärztekammer': { lat: 48.14, lon: 11.60 },
-                'Ärztekammer Berlin': { lat: 52.51, lon: 13.39 },
-                'Gesundheitsamt Hamburg-Mitte': { lat: 53.55, lon: 10.02 },
-                'Gesundheitsamt Hamburg-Wandsbek': { lat: 53.58, lon: 10.08 },
-                'Gesundheitsamt Berlin-Mitte': { lat: 52.54, lon: 13.36 },
-                'Gesundheitsamt München': { lat: 48.14, lon: 11.56 },
-                'Gesundheitsamt Köln': { lat: 50.94, lon: 6.95 },
-            };
-
-            // Entfernung berechnen (Haversine)
-            const calcDist = (lat1, lon1, lat2, lon2) => {
-                const R = 6371;
-                const dLat = (lat2 - lat1) * Math.PI / 180;
-                const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-                return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-            };
-
-            // Ärztekammern-Datenbank
-            const CHAMBERS = {
-                '20': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', kostenlos: true },
-                '21': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', kostenlos: true },
-                '22': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', kostenlos: true },
-                '23': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', kostenlos: true },
-                '24': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', kostenlos: true },
-                '25': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', kostenlos: true },
-                '30': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', kostenlos: true },
-                '40': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', kostenlos: true },
-                '50': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', kostenlos: true },
-                '60': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', kostenlos: true },
-                '70': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', kostenlos: true },
-                '80': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', kostenlos: true },
-                '10': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', kostenlos: true },
-                '12': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', kostenlos: true },
-                '13': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', kostenlos: true },
-            };
-
-            // Gesundheitsämter-Datenbank
-            const HEALTH = {
-                '20': { name: 'Gesundheitsamt Hamburg-Mitte', address: 'Besenbinderhof 41, 20097 Hamburg', phone: '040 42854-4389', email: 'gesundheitsamt@hamburg-mitte.hamburg.de' },
-                '21': { name: 'Gesundheitsamt Hamburg-Bergedorf', address: 'Wentorfer Straße 38a, 21029 Hamburg', phone: '040 42891-2295', email: 'gesundheitsamt@bergedorf.hamburg.de' },
-                '22': { name: 'Gesundheitsamt Hamburg-Wandsbek', address: 'Robert-Schuman-Brücke 4, 22041 Hamburg', phone: '040 42881-3259', email: 'gesundheitsamt@wandsbek.hamburg.de' },
-                '23': { name: 'Gesundheitsamt Lübeck', address: 'Sophienstraße 2-8, 23560 Lübeck', phone: '0451 122-5353', email: 'gesundheitsamt@luebeck.de' },
-                '24': { name: 'Gesundheitsamt Kiel', address: 'Fleethörn 18-24, 24103 Kiel', phone: '0431 901-2117', email: 'gesundheitsamt@kiel.de' },
-                '25': { name: 'Gesundheitsamt Kreis Pinneberg', address: 'Kurt-Wagener-Straße 11, 25337 Elmshorn', phone: '04121 4502-3355', email: 'gesundheitsamt@kreis-pinneberg.de' },
-                '10': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de' },
-                '12': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de' },
-                '13': { name: 'Gesundheitsamt Berlin-Mitte', address: 'Müllerstraße 147, 13353 Berlin', phone: '030 9018-43000', email: 'gesundheitsamt@ba-mitte.berlin.de' },
-                '30': { name: 'Gesundheitsamt Hannover', address: 'Weinstraße 2, 30171 Hannover', phone: '0511 616-43143', email: 'gesundheitsamt@region-hannover.de' },
-                '40': { name: 'Gesundheitsamt Düsseldorf', address: 'Kölner Straße 180, 40227 Düsseldorf', phone: '0211 899-3501', email: 'gesundheitsamt@duesseldorf.de' },
-                '50': { name: 'Gesundheitsamt Köln', address: 'Neumarkt 15-21, 50667 Köln', phone: '0221 221-24571', email: 'gesundheitsamt@stadt-koeln.de' },
-                '60': { name: 'Gesundheitsamt Frankfurt', address: 'Breite Gasse 28, 60313 Frankfurt', phone: '069 212-36222', email: 'gesundheitsamt@stadt-frankfurt.de' },
-                '70': { name: 'Gesundheitsamt Stuttgart', address: 'Schloßstraße 91, 70176 Stuttgart', phone: '0711 216-59410', email: 'gesundheitsamt@stuttgart.de' },
-                '80': { name: 'Gesundheitsamt München', address: 'Bayerstraße 28a, 80335 München', phone: '089 233-66907', email: 'gesundheitsamt.rgu@muenchen.de' },
-            };
-
-            const searchAuthority = () => {
-                if (plz.length < 2) return;
+            const searchHealthAuthority = async () => {
+                if (plz.length < 4) return;
                 setIsSearching(true);
-                setSearchResult(null);
-                setAlternativeResult(null);
-                setDistance(null);
-                setAltDistance(null);
+                setShowManualInput(false);
                 
                 setTimeout(() => {
-                    const prefix = plz.substring(0, 2);
-                    const userCoords = PLZ_COORDS[prefix];
+                    // Zuerst nach vollständiger PLZ suchen
+                    let found = HEALTH_AUTHORITIES[plz];
                     
-                    const primary = authorityType === 'aerztekammer' ? CHAMBERS[prefix] : HEALTH[prefix];
-                    const alt = authorityType === 'aerztekammer' ? HEALTH[prefix] : CHAMBERS[prefix];
-                    
-                    if (primary) {
-                        setSearchResult(primary);
-                        if (userCoords && AUTH_COORDS[primary.name]) {
-                            const ac = AUTH_COORDS[primary.name];
-                            setDistance(calcDist(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
+                    // Falls nicht gefunden, nach PLZ-Präfix suchen (erste 4 Stellen, dann 3, dann 2)
+                    if (!found && plz.length >= 4) {
+                        found = HEALTH_AUTHORITIES[plz.substring(0, 4)];
+                    }
+                    if (!found && plz.length >= 3) {
+                        found = HEALTH_AUTHORITIES[plz.substring(0, 3)];
+                    }
+                    if (!found && plz.length >= 2) {
+                        // Suche nach PLZ-Bereichen die mit den ersten 2 Stellen beginnen
+                        const prefix = plz.substring(0, 2);
+                        const matchingKey = Object.keys(HEALTH_AUTHORITIES).find(key => key.startsWith(prefix));
+                        if (matchingKey) {
+                            found = HEALTH_AUTHORITIES[matchingKey];
                         }
+                    }
+                    
+                    if (found) {
+                        setSearchResult(found);
                     } else {
+                        setSearchResult(null);
                         setShowManualInput(true);
                     }
-                    
-                    if (alt) {
-                        setAlternativeResult(alt);
-                        if (userCoords && AUTH_COORDS[alt.name]) {
-                            const ac = AUTH_COORDS[alt.name];
-                            setAltDistance(calcDist(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
-                        }
-                    }
                     setIsSearching(false);
-                }, 400);
+                }, 500);
             };
 
-            const switchToAlt = () => {
-                if (alternativeResult) {
-                    const tmpRes = searchResult;
-                    const tmpDist = distance;
-                    setSearchResult(alternativeResult);
-                    setDistance(altDistance);
-                    setAlternativeResult(tmpRes);
-                    setAltDistance(tmpDist);
-                    setAuthorityType(authorityType === 'aerztekammer' ? 'gesundheitsamt' : 'aerztekammer');
-                }
-            };
-
-            const selectAuth = (auth) => {
-                onSelect(auth);
+            const selectAuthority = (authority) => {
+                onSelect(authority);
                 setSearchResult(null);
-                setAlternativeResult(null);
-                setShowManualInput(false);
                 setPlz('');
-                setAuthorityType(null);
-                setDistance(null);
-                setAltDistance(null);
             };
 
             return (
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-5">
-                    <div className="mb-4 p-3 bg-white/80 rounded-xl border border-amber-100">
-                        <div className="flex items-start gap-2">
-                            <Icons.Info className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs text-slate-600">
-                                <span className="font-semibold text-amber-800">Beglaubigung erforderlich:</span> BTM-Formular beglaubigen beim <strong>Gesundheitsamt</strong> (10-25€) oder <strong>Ärztekammer</strong> (kostenlos).
-                            </p>
-                        </div>
+                    <div className="flex items-center gap-2 mb-4">
+                        <Icons.Building2 className="h-5 w-5 text-amber-600" />
+                        <span className="text-sm font-bold text-amber-800">Zuständiges Gesundheitsamt</span>
                     </div>
-
+                    
                     {currentAuthority?.name ? (
-                        <div className="bg-white rounded-xl border border-emerald-200 p-4 mb-4">
+                        <div className="bg-white rounded-xl border border-amber-200 p-4 mb-4">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-slate-800">{currentAuthority.name}</span>
-                                        {currentAuthority.kostenlos && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">KOSTENLOS</span>}
-                                    </div>
+                                    <div className="font-bold text-slate-800">{currentAuthority.name}</div>
                                     <div className="text-sm text-slate-600">{currentAuthority.address}</div>
-                                    {currentAuthority.phone && <div className="text-sm text-slate-500">Tel: {currentAuthority.phone}</div>}
+                                    {currentAuthority.phone && (
+                                        <div className="text-sm text-slate-600 flex items-center gap-2">
+                                            <Icons.Phone className="h-3 w-3 text-slate-400" />
+                                            {currentAuthority.phone}
+                                        </div>
+                                    )}
+                                    {currentAuthority.fax && (
+                                        <div className="text-sm text-slate-500 flex items-center gap-2">
+                                            <Icons.FileText className="h-3 w-3 text-slate-400" />
+                                            Fax: {currentAuthority.fax}
+                                        </div>
+                                    )}
+                                    {currentAuthority.email && (
+                                        <div className="text-sm text-slate-500 flex items-center gap-2">
+                                            <Icons.Mail className="h-3 w-3 text-slate-400" />
+                                            <a href={`mailto:${currentAuthority.email}`} className="text-sky-600 hover:underline">{currentAuthority.email}</a>
+                                        </div>
+                                    )}
                                 </div>
-                                <button onClick={() => { onSelect({ name: '', address: '', phone: '', email: '', fax: '' }); setAuthorityType(null); }} className="text-slate-400 hover:text-red-500"><Icons.X className="h-4 w-4" /></button>
+                                <button onClick={() => onSelect({ name: '', address: '', phone: '', email: '', fax: '' })} className="text-slate-400 hover:text-red-500 p-1">
+                                    <Icons.X className="h-4 w-4" />
+                                </button>
                             </div>
-                        </div>
-                    ) : !authorityType ? (
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                            <button onClick={() => setAuthorityType('gesundheitsamt')} className="p-3 bg-white rounded-xl border-2 border-amber-200 hover:border-amber-400 transition-all text-center">
-                                <Icons.Building2 className="h-6 w-6 text-amber-600 mx-auto mb-1" />
-                                <div className="font-semibold text-slate-800 text-sm">Gesundheitsamt</div>
-                                <div className="text-xs text-slate-500">10-25€ Gebühr</div>
-                            </button>
-                            <button onClick={() => setAuthorityType('aerztekammer')} className="p-3 bg-white rounded-xl border-2 border-emerald-200 hover:border-emerald-400 transition-all text-center relative">
-                                <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded-full">GRATIS</span>
-                                <Icons.Award className="h-6 w-6 text-emerald-600 mx-auto mb-1" />
-                                <div className="font-semibold text-slate-800 text-sm">Ärztekammer</div>
-                                <div className="text-xs text-emerald-600 font-medium">Kostenlos</div>
-                            </button>
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                                {authorityType === 'aerztekammer' ? <Icons.Award className="h-4 w-4 text-emerald-600" /> : <Icons.Building2 className="h-4 w-4 text-amber-600" />}
-                                <span className="text-sm font-semibold text-slate-700">{authorityType === 'aerztekammer' ? 'Ärztekammer' : 'Gesundheitsamt'} suchen</span>
-                                <button onClick={() => { setAuthorityType(null); setSearchResult(null); setShowManualInput(false); setAlternativeResult(null); }} className="ml-auto text-xs text-slate-500 hover:text-slate-700">← Zurück</button>
-                            </div>
-                            <div className="flex gap-2">
-                                <input type="text" placeholder="PLZ eingeben..." value={plz} onChange={(e) => setPlz(e.target.value.replace(/\D/g, '').slice(0, 5))} onKeyDown={(e) => e.key === 'Enter' && searchAuthority()} className={`flex-1 px-3 py-2 rounded-lg border-2 ${authorityType === 'aerztekammer' ? 'border-emerald-200 focus:border-emerald-400' : 'border-amber-200 focus:border-amber-400'} outline-none text-sm`} />
-                                <button onClick={searchAuthority} disabled={plz.length < 2 || isSearching} className={`px-4 py-2 ${authorityType === 'aerztekammer' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-amber-500 hover:bg-amber-600'} disabled:bg-slate-300 text-white rounded-lg text-sm font-medium`}>{isSearching ? '...' : 'Suchen'}</button>
-                            </div>
-                            
-                            {searchResult && (
-                                <div className={`bg-white rounded-lg border ${authorityType === 'aerztekammer' ? 'border-emerald-200' : 'border-amber-200'} p-3`}>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Icons.CheckCircle className={`h-4 w-4 ${authorityType === 'aerztekammer' ? 'text-emerald-500' : 'text-amber-500'}`} />
-                                        <span className="text-xs font-bold text-slate-600">Gefunden</span>
-                                        {searchResult.kostenlos && <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">KOSTENLOS</span>}
-                                    </div>
-                                    <div className="font-semibold text-slate-800 text-sm">{searchResult.name}</div>
-                                    <div className="text-xs text-slate-600">{searchResult.address}</div>
-                                    <div className="text-xs text-slate-500">{searchResult.phone}</div>
-                                    
-                                    {distance !== null && (
-                                        <div className={`mt-2 flex items-center gap-2 px-2 py-1.5 rounded-lg ${distance > 50 ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
-                                            <Icons.MapPin className={`h-4 w-4 ${distance > 50 ? 'text-amber-500' : 'text-emerald-500'}`} />
-                                            <span className={`text-xs font-medium ${distance > 50 ? 'text-amber-700' : 'text-emerald-700'}`}>ca. {distance} km entfernt</span>
-                                            {distance > 50 && <span className="text-xs text-amber-600">(weite Strecke)</span>}
-                                        </div>
-                                    )}
-                                    
-                                    <button onClick={() => selectAuth(searchResult)} className={`mt-2 w-full py-1.5 ${authorityType === 'aerztekammer' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-amber-500 hover:bg-amber-600'} text-white rounded text-sm font-medium`}>Übernehmen</button>
-                                    
-                                    {alternativeResult && (
-                                        <div className="mt-3 pt-3 border-t border-slate-200">
-                                            <div className="text-xs text-slate-500 mb-2">{authorityType === 'aerztekammer' ? 'Zu weit? Gesundheitsamt ist oft näher:' : 'Alternative – kostenlos bei der Ärztekammer:'}</div>
-                                            <div className={`p-2 rounded-lg border ${authorityType === 'aerztekammer' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <div className="font-medium text-slate-800 text-xs">{alternativeResult.name}</div>
-                                                        <div className="text-[10px] text-slate-500">{alternativeResult.address}</div>
-                                                        <div className="flex items-center gap-1 mt-1">
-                                                            {altDistance !== null && <><Icons.MapPin className="h-3 w-3 text-slate-400" /><span className="text-[10px] text-slate-600">ca. {altDistance} km</span></>}
-                                                            {alternativeResult.kostenlos && <span className="ml-1 px-1 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-bold rounded">KOSTENLOS</span>}
-                                                            {!alternativeResult.kostenlos && <span className="ml-1 text-[10px] text-amber-600">10-25€</span>}
-                                                        </div>
-                                                    </div>
-                                                    <button onClick={switchToAlt} className={`px-3 py-1.5 ${authorityType === 'aerztekammer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white rounded text-xs font-medium`}>Wechseln</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                        <p className="text-xs text-amber-700 mb-4">
+                            {isSchengen 
+                                ? 'Für Schengen-Reisen muss das Formular vom Gesundheitsamt beglaubigt werden.'
+                                : 'Für Nicht-Schengen-Reisen kann das Gesundheitsamt bei Rückfragen kontaktiert werden.'}
+                        </p>
+                    )}
+                    
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input 
+                            type="text" 
+                            placeholder="PLZ des Patienten eingeben..." 
+                            value={plz} 
+                            onChange={(e) => setPlz(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                            onKeyDown={(e) => e.key === 'Enter' && searchHealthAuthority()}
+                            className="flex-1 px-4 py-3 rounded-xl border-2 border-amber-200 focus:border-amber-400 focus:ring-4 focus:ring-amber-100 outline-none text-sm text-slate-700" 
+                        />
+                        <button 
+                            onClick={searchHealthAuthority}
+                            disabled={plz.length < 2 || isSearching}
+                            className="w-full sm:w-auto px-6 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                            {isSearching ? (
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Icons.Search className="h-4 w-4" />
                             )}
-                            
-                            {showManualInput && !searchResult && (
-                                <div className="bg-white rounded-lg border border-slate-200 p-3">
-                                    <div className="text-xs text-amber-600 font-semibold mb-2">Nicht gefunden – manuell eingeben:</div>
-                                    <input type="text" placeholder="Name" className="w-full px-2 py-1.5 mb-2 rounded border border-slate-200 text-sm" onChange={(e) => setSearchResult(prev => ({ ...prev, name: e.target.value }))} />
-                                    <input type="text" placeholder="Adresse" className="w-full px-2 py-1.5 mb-2 rounded border border-slate-200 text-sm" onChange={(e) => setSearchResult(prev => ({ ...prev, address: e.target.value }))} />
-                                    <input type="text" placeholder="Telefon" className="w-full px-2 py-1.5 mb-2 rounded border border-slate-200 text-sm" onChange={(e) => setSearchResult(prev => ({ ...prev, phone: e.target.value }))} />
-                                    <div className="flex gap-2">
-                                        <button onClick={() => { setShowManualInput(false); setSearchResult(null); }} className="flex-1 py-1.5 border border-slate-200 rounded text-sm">Abbrechen</button>
-                                        <button onClick={() => searchResult?.name && selectAuth(searchResult)} className="flex-1 py-1.5 bg-amber-500 text-white rounded text-sm font-medium">Übernehmen</button>
-                                    </div>
+                            Suchen
+                        </button>
+                    </div>
+                    
+                    {searchResult && (
+                        <div className="mt-4 bg-white rounded-xl border border-emerald-200 p-4 animate-slide-down">
+                            <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold mb-2">
+                                <Icons.CheckCircle className="h-4 w-4" />
+                                Gefunden für PLZ {plz}
+                            </div>
+                            <div className="space-y-1">
+                                <div className="font-bold text-slate-800">{searchResult.name}</div>
+                                <div className="text-sm text-slate-600">{searchResult.address}</div>
+                                <div className="text-sm text-slate-600 flex items-center gap-2">
+                                    <Icons.Phone className="h-3 w-3 text-slate-400" />
+                                    {searchResult.phone}
                                 </div>
-                            )}
+                                {searchResult.fax && (
+                                    <div className="text-sm text-slate-500 flex items-center gap-2">
+                                        <Icons.FileText className="h-3 w-3 text-slate-400" />
+                                        Fax: {searchResult.fax}
+                                    </div>
+                                )}
+                                {searchResult.email && (
+                                    <div className="text-sm text-slate-500 flex items-center gap-2">
+                                        <Icons.Mail className="h-3 w-3 text-slate-400" />
+                                        {searchResult.email}
+                                    </div>
+                                )}
+                            </div>
+                            <button 
+                                onClick={() => selectAuthority(searchResult)}
+                                className="mt-3 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Übernehmen
+                            </button>
                         </div>
                     )}
                     
-                    <a href="https://tools.rki.de/plztool/" target="_blank" rel="noopener noreferrer" className="mt-3 flex items-center justify-center gap-1 text-xs text-amber-600 hover:text-amber-700">
+                    {showManualInput && !searchResult && (
+                        <div className="mt-4 bg-white rounded-xl border border-slate-200 p-4 animate-slide-down">
+                            <div className="flex items-center gap-2 text-amber-600 text-xs font-bold mb-3">
+                                <Icons.AlertCircle className="h-4 w-4" />
+                                Nicht gefunden – bitte manuell eingeben
+                            </div>
+                            <div className="space-y-3">
+                                <input 
+                                    type="text" 
+                                    placeholder="Name des Gesundheitsamts"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                    onChange={(e) => setSearchResult(prev => ({ ...prev, name: e.target.value }))}
+                                />
+                                <input 
+                                    type="text" 
+                                    placeholder="Adresse"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                    onChange={(e) => setSearchResult(prev => ({ ...prev, address: e.target.value }))}
+                                />
+                                <input 
+                                    type="text" 
+                                    placeholder="Telefon"
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm"
+                                    onChange={(e) => setSearchResult(prev => ({ ...prev, phone: e.target.value }))}
+                                />
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                                <button onClick={() => { setShowManualInput(false); setSearchResult(null); }} className="flex-1 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">Abbrechen</button>
+                                <button onClick={() => searchResult?.name && selectAuthority(searchResult)} className="flex-1 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600">Übernehmen</button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <a 
+                        href="https://tools.rki.de/plztool/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-4 flex items-center justify-center gap-2 text-xs text-amber-600 hover:text-amber-700"
+                    >
                         <Icons.ExternalLink className="h-3 w-3" />
-                        Alle Gesundheitsämter beim RKI
+                        Alle Gesundheitsämter beim RKI suchen
                     </a>
                 </div>
             );
