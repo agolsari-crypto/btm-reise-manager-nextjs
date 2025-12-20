@@ -2267,6 +2267,7 @@
                         const tempDiv = document.createElement('div');
                         tempDiv.style.position = 'absolute';
                         tempDiv.style.left = '-9999px';
+                        tempDiv.style.top = '-9999px';
                         document.body.appendChild(tempDiv);
                         
                         try {
@@ -2279,18 +2280,36 @@
                                 correctLevel: QRCode.CorrectLevel.M
                             });
                             
+                            // Längere Wartezeit für QR-Code Rendering
                             setTimeout(() => {
-                                const canvas = tempDiv.querySelector('canvas');
-                                if (canvas) {
-                                    resolve(canvas.toDataURL('image/png'));
-                                } else {
+                                try {
+                                    const canvas = tempDiv.querySelector('canvas');
+                                    if (canvas) {
+                                        const dataUrl = canvas.toDataURL('image/png');
+                                        resolve(dataUrl);
+                                    } else {
+                                        // Versuche img Tag als Fallback
+                                        const img = tempDiv.querySelector('img');
+                                        if (img && img.src) {
+                                            resolve(img.src);
+                                        } else {
+                                            console.warn('QR Code: Kein Canvas oder Image gefunden');
+                                            resolve(null);
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error('QR Code extraction failed:', e);
                                     resolve(null);
                                 }
-                                document.body.removeChild(tempDiv);
-                            }, 100);
+                                if (document.body.contains(tempDiv)) {
+                                    document.body.removeChild(tempDiv);
+                                }
+                            }, 300); // Erhöht von 100ms auf 300ms
                         } catch (e) {
                             console.error('QR Code generation failed:', e);
-                            document.body.removeChild(tempDiv);
+                            if (document.body.contains(tempDiv)) {
+                                document.body.removeChild(tempDiv);
+                            }
                             resolve(null);
                         }
                     });
@@ -3644,6 +3663,16 @@
                                 // QR-Code einfügen
                                 if (btmQrCodeDataURL) {
                                     tryAddImageBtm(btmQrCodeDataURL, qrInnerX + 2, qrInnerY + 2, qrInnerSize - 4, qrInnerSize - 4);
+                                } else {
+                                    // Fallback wenn QR-Code nicht generiert werden konnte
+                                    btmDoc.setFont('helvetica', 'bold');
+                                    btmDoc.setFontSize(5);
+                                    btmDoc.setTextColor(...navy);
+                                    btmDoc.text('QR-Code', qrInnerX + qrInnerSize / 2, qrInnerY + qrInnerSize / 2 - 2, { align: 'center' });
+                                    btmDoc.setFont('helvetica', 'normal');
+                                    btmDoc.setFontSize(4);
+                                    btmDoc.setTextColor(...silver);
+                                    btmDoc.text('Generation pending', qrInnerX + qrInnerSize / 2, qrInnerY + qrInnerSize / 2 + 2, { align: 'center' });
                                 }
                                 
                                 // Footer
