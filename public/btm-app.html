@@ -1879,6 +1879,8 @@
             const totalUnits = formData.medDailyCount * formData.travelDuration;
             const totalSubstance = totalUnits * formData.medConcentration;
             const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
+            // Gültigkeitsdauer: 30 Tage für Schengen, Reisedauer für Nicht-Schengen
+            const validityEndDate = calculateEndDate(formData.travelStartDate, Math.min(formData.travelDuration, 30));
             const selectedDoctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
             const currentDocAssets = selectedDoctor ? doctorAssets[selectedDoctor.id] : null;
             
