@@ -2739,10 +2739,10 @@
                             
                             // Content Box
                             doc.setFillColor(...lightBlue);
-                            doc.rect(margin, y, contentWidth, 38, 'F');
+                            doc.rect(margin, y, contentWidth, 50, 'F');
                             doc.setDrawColor(...navy);
                             doc.setLineWidth(0.3);
-                            doc.rect(margin, y, contentWidth, 38, 'S');
+                            doc.rect(margin, y, contentWidth, 50, 'S');
                             
                             // Trennlinien (Grau)
                             doc.setDrawColor(...silver);
@@ -2750,56 +2750,74 @@
                             doc.line(margin + contentWidth / 2, y + 4, margin + contentWidth / 2, y + 34);
                             doc.line(margin + 4, y + 14, margin + contentWidth - 4, y + 14);
                             doc.line(margin + 4, y + 26, margin + contentWidth - 4, y + 26);
+                            doc.line(margin + 4, y + 38, margin + contentWidth - 4, y + 38);
                             
                             drawField('Surname', 'Nachname', formData.patName || '—', col1, y + 4);
                             drawField('First Name', 'Vorname', formData.patFirstName || '—', col2, y + 4);
                             drawField('Date of Birth', 'Geburtsdatum', formData.patDob || '—', col1, y + 17);
                             drawField('Passport / ID', 'Pass/Ausweis-Nr.', formData.patPassport || '—', col2, y + 17);
                             drawField('Nationality', 'Staatsangehörigkeit', formData.patNationality || 'German', col1, y + 29);
-                            drawField('Address', 'Wohnanschrift', formData.patAddress || '—', col2, y + 29);
+                            const sexDisplayAttest = formData.patSex === 'M' ? 'Male / Männlich' : formData.patSex === 'F' ? 'Female / Weiblich' : formData.patSex;
+                            drawField('Sex', 'Geschlecht', sexDisplayAttest || '—', col2, y + 29);
+                            drawField('Address', 'Wohnanschrift', formData.patAddress || '—', col1, y + 41);
                             
-                            y += 42;
+                            y += 54;
                             
                             // ===== REISEDAUER-BOX =====
-                            doc.setFillColor(...white);
+                            doc.setFillColor(...lightBlue);
                             doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
                             doc.setDrawColor(...navy);
                             doc.setLineWidth(0.5);
                             doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'S');
                             
-                            // Graue Trennlinie in der Mitte
+                            // Trennlinien für 3 Spalten
                             doc.setDrawColor(...silver);
-                            doc.setLineWidth(0.8);
-                            doc.line(margin + contentWidth / 2, y + 3, margin + contentWidth / 2, y + 17);
+                            doc.setLineWidth(0.6);
+                            doc.line(margin + contentWidth / 3, y + 3, margin + contentWidth / 3, y + 17);
+                            doc.line(margin + contentWidth * 2 / 3, y + 3, margin + contentWidth * 2 / 3, y + 17);
                             
-                            // Travel Duration
+                            // Spalte 1: Reiseziel
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(7);
+                            doc.setFontSize(6);
                             doc.setTextColor(...navy);
-                            doc.text('TRAVEL DURATION', margin + contentWidth / 4, y + 6, { align: 'center' });
+                            doc.text('DESTINATION', margin + contentWidth / 6, y + 5, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Reisedauer', margin + contentWidth / 4, y + 10, { align: 'center' });
+                            doc.text('Reiseziel', margin + contentWidth / 6, y + 9, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(13);
+                            doc.setFontSize(10);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth / 4, y + 17, { align: 'center' });
+                            doc.text(formData.destination || '—', margin + contentWidth / 6, y + 16, { align: 'center' });
                             
-                            // Validity Period
+                            // Spalte 2: Reisedauer
                             const today = new Date().toISOString().split('T')[0];
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(7);
+                            doc.setFontSize(6);
                             doc.setTextColor(...navy);
-                            doc.text('VALIDITY PERIOD', margin + contentWidth * 3 / 4, y + 6, { align: 'center' });
+                            doc.text('TRAVEL PERIOD', margin + contentWidth / 2, y + 5, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Gültigkeitszeitraum', margin + contentWidth * 3 / 4, y + 10, { align: 'center' });
+                            doc.text('Reisedauer', margin + contentWidth / 2, y + 9, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(9);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today} - ${endDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
+                            doc.text(`${formData.travelStartDate || today} - ${endDate} (${formData.travelDuration} Tage)`, margin + contentWidth / 2, y + 16, { align: 'center' });
+                            
+                            // Spalte 3: Gültigkeit
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(6);
+                            doc.setTextColor(...navy);
+                            doc.text('VALIDITY', margin + contentWidth * 5 / 6, y + 5, { align: 'center' });
+                            doc.setFont('helvetica', 'italic');
+                            doc.setFontSize(5);
+                            doc.setTextColor(...silver);
+                            doc.text('Gültigkeit', margin + contentWidth * 5 / 6, y + 9, { align: 'center' });
+                            doc.setFont('helvetica', 'bold');
+                            doc.setFontSize(9);
+                            doc.setTextColor(...charcoal);
+                            doc.text(`${formData.travelStartDate || today} - ${validityEndDate}`, margin + contentWidth * 5 / 6, y + 16, { align: 'center' });
                             
                             y += 24;
                             
@@ -3294,56 +3312,65 @@
                                 drawPremiumField('Geschlecht', 'Sex', sexDisplay, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
-                                drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 50, y);
+                                y += 12;
+                                drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin, y);
                                 
-                                // Reisedauer Box - Dezentes Design
+                                // Reisedauer Box - Kompaktes einheitliches Design
                                 y += 14;
                                 // Hauptbox mit lightBlue Hintergrund
                                 btmDoc.setFillColor(...lightBlue);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
-                                // Navy Rahmen (dezenter)
+                                // Navy Rahmen
                                 btmDoc.setDrawColor(...navy);
                                 btmDoc.setLineWidth(0.5);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
-                                // Gold-Akzent oben (dezenter)
+                                // Gold-Akzent oben
                                 btmDoc.setFillColor(...gold);
                                 btmDoc.rect(margin + 3, y + 1, contentWidth - 6, 0.6, 'F');
-                                // Trennlinie
+                                // Trennlinien für 3 Spalten
                                 btmDoc.setDrawColor(...gold);
                                 btmDoc.setLineWidth(0.4);
-                                btmDoc.line(margin + 85, y + 3.5, margin + 85, y + 12.5);
-                                // Felder
+                                btmDoc.line(margin + 55, y + 3.5, margin + 55, y + 12.5);
+                                btmDoc.line(margin + 115, y + 3.5, margin + 115, y + 12.5);
+                                // Spalte 1: Reiseziel
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEDAUER', margin + 8, y + 5.5);
+                                btmDoc.text('REISEZIEL', margin + 5, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
                                 btmDoc.setFontSize(5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Travel Duration', margin + 8, y + 8.5);
+                                btmDoc.text('Destination', margin + 5, y + 8.5);
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(10);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Tage / Days`, margin + 8, y + 13.5);
-                                // Gültigkeitszeitraum
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('GÜLTIGKEITSZEITRAUM', margin + 90, y + 5.5);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Validity Period', margin + 90, y + 8.5);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(10);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate}`, margin + 90, y + 13.5);
                                 btmDoc.setFontSize(9);
-                                btmDoc.setTextColor(...gold);
-                                btmDoc.text(' - ', margin + 120, y + 13.5);
-                                btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${endDate}`, margin + 127, y + 13.5);
+                                btmDoc.text(formData.destination || '—', margin + 5, y + 13.5);
+                                // Spalte 2: Reisedauer
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('REISEDAUER', margin + 60, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Travel Period', margin + 60, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(9);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate} - ${endDate} (${formData.travelDuration} Tage)`, margin + 60, y + 13.5);
+                                // Spalte 3: Gültigkeit
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('GÜLTIGKEIT', margin + 120, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Validity', margin + 120, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(9);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate} - ${validityEndDate}`, margin + 120, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
@@ -3844,58 +3871,66 @@
                                 drawNonSchengenField('Geschlecht', 'Sex', formData.patGender === 'male' ? 'Männlich (Male)' : formData.patGender === 'female' ? 'Weiblich (Female)' : 'Divers (Diverse)', margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
-                                drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 55, y);
+                                y += 12;
+                                drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin, y);
                                 
-                                // REISEZIEL BOX (Neu für Non-Schengen)
+                                // REISEZIEL BOX - Kompaktes einheitliches Design
                                 y += 14;
                                 btmDoc.setFillColor(...lightBlue);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
                                 btmDoc.setDrawColor(...navy);
                                 btmDoc.setLineWidth(0.5);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
-                                
+                                // Gold-Akzent oben
                                 btmDoc.setFillColor(...gold);
-                                btmDoc.rect(margin, y, 4, 16, 'F');
-                                
-                                // Reisedauer links
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEZIEL / DESTINATION', margin + 8, y + 5.5);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(11);
-                                // Stadt, Land Format
-                                const destinationText = formData.destinationCity && formData.destination 
-                                    ? `${formData.destinationCity}, ${formData.destination}`
-                                    : formData.destination || 'Not specified';
-                                btmDoc.text(destinationText, margin + 8, y + 12);
-                                
-                                // Trennlinie
+                                btmDoc.rect(margin + 3, y + 1, contentWidth - 6, 0.6, 'F');
+                                // Trennlinien für 3 Spalten
                                 btmDoc.setDrawColor(...gold);
-                                btmDoc.setLineWidth(0.8);
-                                btmDoc.line(margin + 85, y + 2, margin + 85, y + 14);
-                                
-                                // Reisedauer
+                                btmDoc.setLineWidth(0.4);
+                                btmDoc.line(margin + 55, y + 3.5, margin + 55, y + 12.5);
+                                btmDoc.line(margin + 115, y + 3.5, margin + 115, y + 12.5);
+                                // Spalte 1: Reiseziel
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEDAUER', margin + 90, y + 5.5);
+                                btmDoc.text('REISEZIEL', margin + 5, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
                                 btmDoc.setFontSize(5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Travel Duration', margin + 90, y + 8.5);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(10);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Days`, margin + 90, y + 13.5);
-                                
-                                // Gültigkeitszeitraum
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
-                                btmDoc.text('VALIDITY', margin + 130, y + 5.5);
+                                btmDoc.text('Destination', margin + 5, y + 8.5);
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(9);
-                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 130, y + 12);
+                                btmDoc.setTextColor(...navy);
+                                const destinationText = formData.destinationCity && formData.destination 
+                                    ? `${formData.destinationCity}, ${formData.destination}`
+                                    : formData.destination || '—';
+                                btmDoc.text(destinationText, margin + 5, y + 13.5);
+                                // Spalte 2: Reisedauer
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('REISEDAUER', margin + 60, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Travel Period', margin + 60, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(9);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate} - ${endDate} (${formData.travelDuration} Tage)`, margin + 60, y + 13.5);
+                                // Spalte 3: Gültigkeit
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('GÜLTIGKEIT', margin + 120, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Validity', margin + 120, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(9);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 120, y + 13.5);
                                 
                                 // SEKTION C - Medikamente
                                 y += 22;
