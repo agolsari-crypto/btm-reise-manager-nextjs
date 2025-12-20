@@ -2610,15 +2610,8 @@
                     try {
                         const { jsPDF } = window.jspdf;
                         
-                        // PDF mit Schutz: Öffnen & Drucken erlaubt, Bearbeiten & Kopieren verboten
-                        const doc = new jsPDF({
-                            encryption: {
-                                userPassword: '',  // Kein Passwort zum Öffnen
-                                ownerPassword: 'NEVPAZ_ATT_2024_SECURE',
-                                userPermissions: ['print', 'print-highres']
-                                // Nicht erlaubt: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
-                            }
-                        });
+                        // PDF erstellen (ohne Verschlüsselung für zuverlässigen Download)
+                        const doc = new jsPDF();
                         const pageWidth = doc.internal.pageSize.getWidth();
                         const pageHeight = doc.internal.pageSize.getHeight();
                         doc.setFont('helvetica');
@@ -3278,15 +3271,8 @@
                             // Attest PDF wird später zusammen mit BTM-Formular per Email gesendet
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
-                            // PDF mit Schutz: Öffnen & Drucken erlaubt, Bearbeiten & Kopieren verboten
-                            const btmDoc = new jsPDF({
-                                encryption: {
-                                    userPassword: '',  // Kein Passwort zum Öffnen
-                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE',
-                                    userPermissions: ['print', 'print-highres']
-                                    // Nicht erlaubt: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
-                                }
-                            });
+                            // PDF erstellen (ohne Verschlüsselung für zuverlässigen Download)
+                            const btmDoc = new jsPDF();
                             btmDoc.setFont('helvetica');
                             
                             // Helper für Bilder im BTM-Dokument
