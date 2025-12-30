@@ -1573,29 +1573,37 @@
             // LocalStorage und Server-Assets laden
             useEffect(() => {
                 const loadAssets = async () => {
-                    try {
-                        // Zuerst globale Assets von Server laden
-                        const response = await fetch('/assets-config.json');
-                        if (response.ok) {
-                            const config = await response.json();
-                            if (config.doctorAssets && Object.keys(config.doctorAssets).length > 0) {
-                                setDoctorAssets(config.doctorAssets);
-                                console.log('✅ Arzt-Assets von Server geladen');
+                    // WICHTIG: Bei Stripe-Redirect NICHT Server-Assets laden (werden vom Payment-Handler geladen)
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const isStripeRedirect = urlParams.get('payment') === 'success';
+
+                    if (!isStripeRedirect) {
+                        try {
+                            // Globale Assets von Server laden
+                            const response = await fetch('/assets-config.json');
+                            if (response.ok) {
+                                const config = await response.json();
+                                if (config.doctorAssets && Object.keys(config.doctorAssets).length > 0) {
+                                    setDoctorAssets(config.doctorAssets);
+                                    console.log('✅ Arzt-Assets von Server geladen');
+                                }
+                                if (config.logo) {
+                                    setLogo(config.logo);
+                                    console.log('✅ Logo von Server geladen');
+                                }
                             }
-                            if (config.logo) {
-                                setLogo(config.logo);
-                                console.log('✅ Logo von Server geladen');
-                            }
+                        } catch (err) {
+                            console.log('ℹ️ Keine Server-Assets, verwende localStorage');
+                            // Fallback: localStorage
+                            const savedAssets = localStorage.getItem('nevpaz_assets');
+                            const savedLogo = localStorage.getItem('nevpaz_logo');
+                            if (savedAssets) setDoctorAssets(JSON.parse(savedAssets));
+                            if (savedLogo) setLogo(savedLogo);
                         }
-                    } catch (err) {
-                        console.log('ℹ️ Keine Server-Assets, verwende localStorage');
-                        // Fallback: localStorage
-                        const savedAssets = localStorage.getItem('nevpaz_assets');
-                        const savedLogo = localStorage.getItem('nevpaz_logo');
-                        if (savedAssets) setDoctorAssets(JSON.parse(savedAssets));
-                        if (savedLogo) setLogo(savedLogo);
+                    } else {
+                        console.log('🔄 Stripe-Redirect erkannt, Assets werden vom Payment-Handler geladen');
                     }
-                    
+
                     // User und Reviews immer aus localStorage
                     const savedUser = localStorage.getItem('nevpaz_current_user');
                     const savedReviews = localStorage.getItem('nevpaz_reviews');
@@ -1927,7 +1935,12 @@
                 setTimeout(async () => {
                     // Verwende activeFormData für alle Referenzen in dieser Funktion
                     const formData = activeFormData;
-                    
+
+                    // WICHTIG: Neuberechnung mit den korrekten Formulardaten
+                    const totalUnits = (formData.medDailyCount || 0) * (formData.travelDuration || 0);
+                    const totalSubstance = totalUnits * (formData.medConcentration || 0);
+                    const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
+
                     try {
                         const { jsPDF } = window.jspdf;
                         
@@ -1945,28 +1958,6 @@
                         const pageHeight = doc.internal.pageSize.getHeight();
                         doc.setFont('helvetica');
 
-                        // Dezentes Sicherheits-Wasserzeichen hinzufügen (auf jeder Seite)
-                        const addSecurityWatermark = (pdfDoc) => {
-                            const totalPages = pdfDoc.internal.getNumberOfPages();
-                            for (let i = 1; i <= totalPages; i++) {
-                                pdfDoc.setPage(i);
-                                pdfDoc.saveGraphicsState();
-                                // Sehr dezentes diagonales Wasserzeichen
-                                pdfDoc.setTextColor(240, 240, 240); // Fast unsichtbar
-                                pdfDoc.setFontSize(45);
-                                pdfDoc.setFont('helvetica', 'bold');
-                                // Rotation für diagonales Wasserzeichen
-                                const centerX = pageWidth / 2;
-                                const centerY = pageHeight / 2;
-                                pdfDoc.text('NEVPAZ ORIGINAL', centerX, centerY, {
-                                    align: 'center',
-                                    angle: 45,
-                                    renderingMode: 'fill'
-                                });
-                                pdfDoc.restoreGraphicsState();
-                            }
-                        };
-                        
                         // Generiere Dokument-ID und Sicherheits-Hash
                         const docId = 'BTM-' + Date.now().toString(36).toUpperCase().slice(-8);
                         const issuedDate = new Date().toISOString().split('T')[0];
@@ -3812,10 +3803,6 @@
                                 creator: 'NEVPAZ BTM-Reise-Manager',
                                 keywords: 'BTM, Betäubungsmittel, Schengen, Reisebescheinigung'
                             });
-
-                            // Sicherheits-Wasserzeichen auf beide PDFs anwenden
-                            addSecurityWatermark(doc);
-                            addSecurityWatermark(btmDoc);
 
                             // PDFs als Base64 extrahieren für Email-Versand
                             const attestPdfBase64 = doc.output('datauristring').split(',')[1];
