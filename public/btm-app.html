@@ -269,6 +269,11 @@
                     <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
             ),
+            Globe: ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
+                </svg>
+            ),
             Phone: ({ className }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
@@ -468,12 +473,124 @@
             return end.toISOString().split('T')[0];
         };
 
-        // Gesundheitsamt Suche nach PLZ (via RKI PLZ-Tool Scraping Alternative)
-        const HealthAuthoritySearch = ({ onSelect, currentAuthority, isSchengen = true }) => {
+        // Behördensuche nach PLZ (Gesundheitsamt oder Ärztekammer)
+        const HealthAuthoritySearch = ({ onSelect, currentAuthority, isSchengen = true, authorityType = 'gesundheitsamt', onAuthorityTypeChange }) => {
             const [plz, setPlz] = useState('');
             const [isSearching, setIsSearching] = useState(false);
             const [searchResult, setSearchResult] = useState(null);
             const [showManualInput, setShowManualInput] = useState(false);
+
+            // Ärztekammern-Datenbank (nach Bundesland/Region)
+            const MEDICAL_CHAMBERS = {
+                // Hamburg (alle PLZ 20xxx-22xxx)
+                '20': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', type: 'aerztekammer', cost: 'kostenlos' },
+                '21': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', type: 'aerztekammer', cost: 'kostenlos' },
+                '22': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', type: 'aerztekammer', cost: 'kostenlos' },
+                // Schleswig-Holstein (23xxx-25xxx)
+                '23': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', type: 'aerztekammer', cost: 'kostenlos' },
+                '24': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', type: 'aerztekammer', cost: 'kostenlos' },
+                '25': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', type: 'aerztekammer', cost: 'kostenlos' },
+                // Niedersachsen (26xxx-31xxx, 34xxx, 37xxx, 38xxx, 49xxx)
+                '26': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                '27': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                '28': { name: 'Ärztekammer Bremen', address: 'Schwachhauser Heerstraße 32, 28209 Bremen', phone: '0421 3404-200', email: 'info@aekhb.de', fax: '0421 3404-209', type: 'aerztekammer', cost: 'kostenlos' },
+                '29': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                '30': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                '31': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                // NRW (32xxx-33xxx, 40xxx-53xxx)
+                '32': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', type: 'aerztekammer', cost: 'kostenlos' },
+                '33': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', type: 'aerztekammer', cost: 'kostenlos' },
+                '40': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '41': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '42': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '44': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', type: 'aerztekammer', cost: 'kostenlos' },
+                '45': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '46': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '47': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '48': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', type: 'aerztekammer', cost: 'kostenlos' },
+                '49': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                '50': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '51': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '52': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                '53': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', type: 'aerztekammer', cost: 'kostenlos' },
+                // Hessen (34xxx-36xxx, 60xxx-65xxx)
+                '34': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+                '35': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+                '36': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+                '37': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                '38': { name: 'Ärztekammer Niedersachsen', address: 'Berliner Allee 20, 30175 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', type: 'aerztekammer', cost: 'kostenlos' },
+                // Rheinland-Pfalz (54xxx-57xxx, 66xxx-67xxx)
+                '54': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28822-0', email: 'kammer@laek-rlp.de', fax: '06131 28822-80', type: 'aerztekammer', cost: 'kostenlos' },
+                '55': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28822-0', email: 'kammer@laek-rlp.de', fax: '06131 28822-80', type: 'aerztekammer', cost: 'kostenlos' },
+                '56': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28822-0', email: 'kammer@laek-rlp.de', fax: '06131 28822-80', type: 'aerztekammer', cost: 'kostenlos' },
+                '57': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28822-0', email: 'kammer@laek-rlp.de', fax: '06131 28822-80', type: 'aerztekammer', cost: 'kostenlos' },
+                // Baden-Württemberg (68xxx-79xxx, 88xxx-89xxx)
+                '68': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '69': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '70': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '71': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '72': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '73': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '74': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '75': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '76': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '77': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '78': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '79': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                // Bayern (80xxx-87xxx, 90xxx-97xxx)
+                '80': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '81': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '82': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '83': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '84': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '85': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '86': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '87': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '88': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '89': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', type: 'aerztekammer', cost: 'kostenlos' },
+                '90': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '91': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '92': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '93': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '94': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '95': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '96': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                '97': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', type: 'aerztekammer', cost: 'kostenlos' },
+                // Saarland (66xxx)
+                '66': { name: 'Ärztekammer des Saarlandes', address: 'Faktoreistraße 4, 66111 Saarbrücken', phone: '0681 4003-0', email: 'info@aerztekammer-saarland.de', fax: '0681 4003-340', type: 'aerztekammer', cost: 'kostenlos' },
+                '67': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28822-0', email: 'kammer@laek-rlp.de', fax: '06131 28822-80', type: 'aerztekammer', cost: 'kostenlos' },
+                // Berlin (10xxx-14xxx)
+                '10': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', type: 'aerztekammer', cost: 'kostenlos' },
+                '12': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', type: 'aerztekammer', cost: 'kostenlos' },
+                '13': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', type: 'aerztekammer', cost: 'kostenlos' },
+                '14': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', type: 'aerztekammer', cost: 'kostenlos' },
+                // Brandenburg (14xxx, 15xxx, 16xxx, 17xxx, 19xxx)
+                '15': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', type: 'aerztekammer', cost: 'kostenlos' },
+                '16': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', type: 'aerztekammer', cost: 'kostenlos' },
+                '17': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', type: 'aerztekammer', cost: 'kostenlos' },
+                '18': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', type: 'aerztekammer', cost: 'kostenlos' },
+                '19': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', type: 'aerztekammer', cost: 'kostenlos' },
+                // Sachsen-Anhalt (06xxx, 38xxx, 39xxx)
+                '06': { name: 'Ärztekammer Sachsen-Anhalt', address: 'Doctor-Eisenbart-Ring 2, 39120 Magdeburg', phone: '0391 6054-6', email: 'info@aeksa.de', fax: '0391 6054-7000', type: 'aerztekammer', cost: 'kostenlos' },
+                '39': { name: 'Ärztekammer Sachsen-Anhalt', address: 'Doctor-Eisenbart-Ring 2, 39120 Magdeburg', phone: '0391 6054-6', email: 'info@aeksa.de', fax: '0391 6054-7000', type: 'aerztekammer', cost: 'kostenlos' },
+                // Thüringen (07xxx, 98xxx, 99xxx)
+                '07': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'post@laek-thueringen.de', fax: '03641 614-169', type: 'aerztekammer', cost: 'kostenlos' },
+                '98': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'post@laek-thueringen.de', fax: '03641 614-169', type: 'aerztekammer', cost: 'kostenlos' },
+                '99': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'post@laek-thueringen.de', fax: '03641 614-169', type: 'aerztekammer', cost: 'kostenlos' },
+                // Sachsen (01xxx-04xxx, 08xxx, 09xxx)
+                '01': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', type: 'aerztekammer', cost: 'kostenlos' },
+                '02': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', type: 'aerztekammer', cost: 'kostenlos' },
+                '03': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', type: 'aerztekammer', cost: 'kostenlos' },
+                '04': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', type: 'aerztekammer', cost: 'kostenlos' },
+                '08': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', type: 'aerztekammer', cost: 'kostenlos' },
+                '09': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', type: 'aerztekammer', cost: 'kostenlos' },
+                // Hessen (Ergänzung)
+                '60': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+                '61': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+                '63': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+                '64': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+                '65': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', type: 'aerztekammer', cost: 'kostenlos' },
+            };
 
             // Vollständige Gesundheitsämter-Datenbank mit allen Kontaktdaten
             const HEALTH_AUTHORITIES = {
@@ -871,6 +988,177 @@
             );
         };
 
+        // Intelligente Reiseziel-Suche mit Autocomplete
+        const DestinationSearch = ({ value, onChange, countryType }) => {
+            const [query, setQuery] = useState(value || '');
+            const [suggestions, setSuggestions] = useState([]);
+            const [showSuggestions, setShowSuggestions] = useState(false);
+
+            // Schengen-Länder mit beliebten Städten
+            const SCHENGEN_DESTINATIONS = [
+                { country: 'Österreich', cities: ['Wien', 'Salzburg', 'Innsbruck', 'Graz', 'Linz'] },
+                { country: 'Belgien', cities: ['Brüssel', 'Antwerpen', 'Brügge', 'Gent'] },
+                { country: 'Dänemark', cities: ['Kopenhagen', 'Aarhus', 'Odense'] },
+                { country: 'Estland', cities: ['Tallinn', 'Tartu'] },
+                { country: 'Finnland', cities: ['Helsinki', 'Tampere', 'Turku'] },
+                { country: 'Frankreich', cities: ['Paris', 'Marseille', 'Lyon', 'Nizza', 'Bordeaux', 'Straßburg'] },
+                { country: 'Griechenland', cities: ['Athen', 'Thessaloniki', 'Kreta', 'Rhodos', 'Santorini'] },
+                { country: 'Island', cities: ['Reykjavik'] },
+                { country: 'Italien', cities: ['Rom', 'Mailand', 'Venedig', 'Florenz', 'Neapel', 'Turin'] },
+                { country: 'Kroatien', cities: ['Zagreb', 'Split', 'Dubrovnik', 'Zadar'] },
+                { country: 'Lettland', cities: ['Riga', 'Jūrmala'] },
+                { country: 'Liechtenstein', cities: ['Vaduz'] },
+                { country: 'Litauen', cities: ['Vilnius', 'Kaunas'] },
+                { country: 'Luxemburg', cities: ['Luxemburg'] },
+                { country: 'Malta', cities: ['Valletta', 'Mdina'] },
+                { country: 'Niederlande', cities: ['Amsterdam', 'Rotterdam', 'Den Haag', 'Utrecht'] },
+                { country: 'Norwegen', cities: ['Oslo', 'Bergen', 'Trondheim', 'Tromsø'] },
+                { country: 'Polen', cities: ['Warschau', 'Krakau', 'Danzig', 'Breslau', 'Posen'] },
+                { country: 'Portugal', cities: ['Lissabon', 'Porto', 'Faro', 'Madeira'] },
+                { country: 'Schweden', cities: ['Stockholm', 'Göteborg', 'Malmö'] },
+                { country: 'Schweiz', cities: ['Zürich', 'Genf', 'Bern', 'Basel', 'Luzern'] },
+                { country: 'Slowakei', cities: ['Bratislava', 'Košice'] },
+                { country: 'Slowenien', cities: ['Ljubljana', 'Maribor', 'Bled'] },
+                { country: 'Spanien', cities: ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Málaga', 'Mallorca', 'Ibiza'] },
+                { country: 'Tschechien', cities: ['Prag', 'Brünn', 'Karlsbad'] },
+                { country: 'Ungarn', cities: ['Budapest', 'Debrecen', 'Szeged'] },
+            ];
+
+            // Nicht-Schengen Länder
+            const NON_SCHENGEN_DESTINATIONS = [
+                { country: 'USA', cities: ['New York', 'Los Angeles', 'Miami', 'Las Vegas', 'San Francisco', 'Chicago'] },
+                { country: 'Kanada', cities: ['Toronto', 'Vancouver', 'Montreal', 'Calgary'] },
+                { country: 'Großbritannien', cities: ['London', 'Manchester', 'Edinburgh', 'Birmingham'] },
+                { country: 'Thailand', cities: ['Bangkok', 'Phuket', 'Chiang Mai', 'Pattaya', 'Koh Samui'] },
+                { country: 'Japan', cities: ['Tokyo', 'Osaka', 'Kyoto', 'Yokohama'] },
+                { country: 'Australien', cities: ['Sydney', 'Melbourne', 'Brisbane', 'Perth'] },
+                { country: 'Neuseeland', cities: ['Auckland', 'Wellington', 'Christchurch'] },
+                { country: 'VAE', cities: ['Dubai', 'Abu Dhabi'] },
+                { country: 'Türkei', cities: ['Istanbul', 'Antalya', 'Ankara', 'Izmir', 'Bodrum'] },
+                { country: 'Ägypten', cities: ['Kairo', 'Hurghada', 'Sharm el-Sheikh', 'Luxor'] },
+                { country: 'Mexiko', cities: ['Cancún', 'Mexiko-Stadt', 'Playa del Carmen'] },
+                { country: 'Brasilien', cities: ['Rio de Janeiro', 'São Paulo', 'Salvador'] },
+                { country: 'Südafrika', cities: ['Kapstadt', 'Johannesburg', 'Durban'] },
+                { country: 'Indien', cities: ['Delhi', 'Mumbai', 'Goa', 'Bangalore'] },
+                { country: 'China', cities: ['Peking', 'Shanghai', 'Hongkong', 'Shenzhen'] },
+                { country: 'Singapur', cities: ['Singapur'] },
+                { country: 'Indonesien', cities: ['Bali', 'Jakarta', 'Lombok'] },
+                { country: 'Vietnam', cities: ['Hanoi', 'Ho-Chi-Minh-Stadt', 'Da Nang'] },
+                { country: 'Malediven', cities: ['Malé'] },
+                { country: 'Marokko', cities: ['Marrakesch', 'Casablanca', 'Fès', 'Agadir'] },
+                { country: 'Kuba', cities: ['Havanna', 'Varadero'] },
+                { country: 'Dominikanische Republik', cities: ['Punta Cana', 'Santo Domingo'] },
+                { country: 'Irland', cities: ['Dublin', 'Cork', 'Galway'] },
+                { country: 'Rumänien', cities: ['Bukarest', 'Cluj-Napoca', 'Timișoara'] },
+                { country: 'Bulgarien', cities: ['Sofia', 'Varna', 'Plovdiv'] },
+                { country: 'Zypern', cities: ['Nikosia', 'Larnaka', 'Paphos'] },
+            ];
+
+            const destinations = countryType === 'schengen' ? SCHENGEN_DESTINATIONS : NON_SCHENGEN_DESTINATIONS;
+
+            const searchDestinations = (searchTerm) => {
+                if (!searchTerm || searchTerm.length < 2) {
+                    setSuggestions([]);
+                    return;
+                }
+
+                const term = searchTerm.toLowerCase();
+                const results = [];
+
+                destinations.forEach(dest => {
+                    // Suche nach Land
+                    if (dest.country.toLowerCase().includes(term)) {
+                        results.push({ type: 'country', value: dest.country, display: dest.country });
+                    }
+                    // Suche nach Städten
+                    dest.cities.forEach(city => {
+                        if (city.toLowerCase().includes(term)) {
+                            results.push({ type: 'city', value: `${city}, ${dest.country}`, display: `${city}, ${dest.country}` });
+                        }
+                    });
+                });
+
+                // Sortiere: Exakte Matches zuerst
+                results.sort((a, b) => {
+                    const aExact = a.value.toLowerCase().startsWith(term);
+                    const bExact = b.value.toLowerCase().startsWith(term);
+                    if (aExact && !bExact) return -1;
+                    if (!aExact && bExact) return 1;
+                    return 0;
+                });
+
+                setSuggestions(results.slice(0, 8));
+            };
+
+            const handleInputChange = (e) => {
+                const val = e.target.value;
+                setQuery(val);
+                onChange(val);
+                searchDestinations(val);
+                setShowSuggestions(true);
+            };
+
+            const selectSuggestion = (suggestion) => {
+                setQuery(suggestion.value);
+                onChange(suggestion.value);
+                setSuggestions([]);
+                setShowSuggestions(false);
+            };
+
+            return (
+                <div className="relative">
+                    <div className="relative">
+                        <Icons.MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={handleInputChange}
+                            onFocus={() => query.length >= 2 && setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                            className="w-full pl-12 pr-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400"
+                            placeholder={countryType === 'schengen' ? 'Stadt oder Land eingeben, z.B. Paris, Wien...' : 'Land eingeben, z.B. Thailand, USA...'}
+                        />
+                        {query && (
+                            <button
+                                type="button"
+                                onClick={() => { setQuery(''); onChange(''); setSuggestions([]); }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                                <Icons.X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl max-h-64 overflow-y-auto">
+                            {suggestions.map((suggestion, idx) => (
+                                <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => selectSuggestion(suggestion)}
+                                    className="w-full px-4 py-3 text-left hover:bg-sky-50 flex items-center gap-3 border-b border-slate-100 last:border-b-0"
+                                >
+                                    {suggestion.type === 'country' ? (
+                                        <Icons.Globe className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                                    ) : (
+                                        <Icons.MapPin className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                                    )}
+                                    <span className="text-slate-700">{suggestion.display}</span>
+                                    <span className="text-xs text-slate-400 ml-auto">
+                                        {suggestion.type === 'country' ? 'Land' : 'Stadt'}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {countryType === 'schengen' && (
+                        <p className="text-xs text-slate-500 mt-1">Die Bescheinigung gilt für alle Schengen-Staaten.</p>
+                    )}
+                </div>
+            );
+        };
+
         // Address Autocomplete Komponente (mit Modal & Karte)
         const AddressInput = ({ value, onChange }) => {
             const [suggestions, setSuggestions] = useState([]);
@@ -1022,7 +1310,7 @@
         // =====================================================
         // STRIPE CHECKOUT MODAL KOMPONENTE
         // =====================================================
-        const PaymentModal = ({ isOpen, onClose, product, price, onPaymentSuccess, patientName, doctorName, patientEmail, formData }) => {
+        const PaymentModal = ({ isOpen, onClose, product, price, onPaymentSuccess, patientName, doctorName, patientEmail, formData, doctorAssets }) => {
             const [isProcessing, setIsProcessing] = useState(false);
             const [error, setError] = useState(null);
 
@@ -1031,15 +1319,16 @@
                 setError(null);
                 
                 try {
-                    // WICHTIG: Formulardaten VOR dem Redirect speichern
+                    // WICHTIG: Formulardaten UND Assets VOR dem Redirect speichern
                     const pendingPaymentData = {
                         formData: formData,
+                        doctorAssets: doctorAssets,
                         product: product,
                         price: price,
                         timestamp: Date.now()
                     };
                     localStorage.setItem('nevpaz_pending_payment', JSON.stringify(pendingPaymentData));
-                    console.log('💾 Formulardaten gespeichert:', pendingPaymentData);
+                    console.log('💾 Formulardaten + Assets gespeichert:', pendingPaymentData);
                     
                     // Stripe Checkout Session erstellen
                     const response = await fetch('/api/stripe/create-checkout-session', {
@@ -1202,7 +1491,8 @@
             const [formData, setFormData] = useState({
                 selectedDoctorId: '', patName: '', patFirstName: '', patDob: '', patPob: '', patAddress: '', patPassport: '', patNationality: 'Deutsch', patSex: '',
                 medTradeName: '', medDosageForm: 'Hartkapseln', medSubstance: '', medConcentration: 0, medDailyCount: 0, medInstructions: '', doseMorning: 0, doseNoon: 0, doseEvening: 0,
-                travelStartDate: '', travelDuration: 0, countryType: 'schengen', destination: '',
+                travelStartDate: '', travelDuration: 0, countryType: 'schengen', destination: '', destinationCity: '', destinationCountry: '',
+                authorityType: 'gesundheitsamt', // 'gesundheitsamt' oder 'aerztekammer'
                 healthAuthorityName: '', healthAuthorityAddress: '', healthAuthorityPhone: '', healthAuthorityEmail: '', healthAuthorityFax: ''
             });
 
@@ -1362,14 +1652,20 @@
                     // Stripe Session ID für Email-Versand speichern
                     sessionStorage.setItem('stripe_session_id', sessionId);
                     
-                    // Gespeicherte Formulardaten laden
+                    // Gespeicherte Formulardaten und Assets laden
                     const pendingData = localStorage.getItem('nevpaz_pending_payment');
                     if (pendingData) {
                         try {
-                            const { formData: savedFormData } = JSON.parse(pendingData);
+                            const { formData: savedFormData, doctorAssets: savedAssets } = JSON.parse(pendingData);
                             if (savedFormData) {
                                 console.log('📋 Restoring form data:', savedFormData);
                                 setFormData(savedFormData);
+
+                                // WICHTIG: Auch die Assets wiederherstellen für PDF-Generierung
+                                if (savedAssets && Object.keys(savedAssets).length > 0) {
+                                    console.log('🎨 Restoring doctor assets:', Object.keys(savedAssets));
+                                    setDoctorAssets(savedAssets);
+                                }
                                 
                                 // Verifiziere die Zahlung serverseitig
                                 const verifyAndGeneratePDF = async () => {
@@ -1636,17 +1932,40 @@
                         const { jsPDF } = window.jspdf;
                         
                         // PDF mit Sicherheitseinschränkungen erstellen
+                        // Schutz: Öffnen + Drucken erlaubt, Kopieren/Bearbeiten verboten
                         const doc = new jsPDF({
                             encryption: {
                                 userPassword: '', // Kein Passwort zum Öffnen
-                                ownerPassword: 'NEVPAZ_DOC_2024_SECURE', // Passwort für Berechtigungen
-                                userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
+                                ownerPassword: 'NEVPAZ_DOC_2024_SECURE_' + Date.now(), // Einzigartiges Owner-Passwort
+                                userPermissions: ['print', 'print-highres'] // NUR Drucken erlaubt
                                 // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
                             }
                         });
                         const pageWidth = doc.internal.pageSize.getWidth();
                         const pageHeight = doc.internal.pageSize.getHeight();
                         doc.setFont('helvetica');
+
+                        // Dezentes Sicherheits-Wasserzeichen hinzufügen (auf jeder Seite)
+                        const addSecurityWatermark = (pdfDoc) => {
+                            const totalPages = pdfDoc.internal.getNumberOfPages();
+                            for (let i = 1; i <= totalPages; i++) {
+                                pdfDoc.setPage(i);
+                                pdfDoc.saveGraphicsState();
+                                // Sehr dezentes diagonales Wasserzeichen
+                                pdfDoc.setTextColor(240, 240, 240); // Fast unsichtbar
+                                pdfDoc.setFontSize(45);
+                                pdfDoc.setFont('helvetica', 'bold');
+                                // Rotation für diagonales Wasserzeichen
+                                const centerX = pageWidth / 2;
+                                const centerY = pageHeight / 2;
+                                pdfDoc.text('NEVPAZ ORIGINAL', centerX, centerY, {
+                                    align: 'center',
+                                    angle: 45,
+                                    renderingMode: 'fill'
+                                });
+                                pdfDoc.restoreGraphicsState();
+                            }
+                        };
                         
                         // Generiere Dokument-ID und Sicherheits-Hash
                         const docId = 'BTM-' + Date.now().toString(36).toUpperCase().slice(-8);
@@ -2290,12 +2609,14 @@
                             // Attest PDF wird später zusammen mit BTM-Formular per Email gesendet
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
-                            // Mit Sicherheitseinschränkungen erstellen
+                            // BTM-Dokument mit Sicherheitseinschränkungen
+                            // Schutz: Öffnen + Drucken erlaubt, Kopieren/Bearbeiten verboten
                             const btmDoc = new jsPDF({
                                 encryption: {
                                     userPassword: '', // Kein Passwort zum Öffnen
-                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE', // Passwort für Berechtigungen
-                                    userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
+                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE_' + Date.now(), // Einzigartiges Owner-Passwort
+                                    userPermissions: ['print', 'print-highres'] // NUR Drucken erlaubt
+                                    // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
                                 }
                             });
                             btmDoc.setFont('helvetica');
@@ -2633,7 +2954,7 @@
                                 drawPremiumField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
                                 drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 50, y);
                                 
-                                // Reisedauer Box - Dezentes Design
+                                // Reiseziel & Reisedauer Box - Dezentes Design (3 Spalten)
                                 y += 14;
                                 // Hauptbox mit lightBlue Hintergrund
                                 btmDoc.setFillColor(...lightBlue);
@@ -2645,42 +2966,53 @@
                                 // Gold-Akzent oben (dezenter)
                                 btmDoc.setFillColor(...gold);
                                 btmDoc.rect(margin + 3, y + 1, contentWidth - 6, 0.6, 'F');
-                                // Trennlinie
+                                // Trennlinien für 3 Spalten
                                 btmDoc.setDrawColor(...gold);
                                 btmDoc.setLineWidth(0.4);
-                                btmDoc.line(margin + 85, y + 3.5, margin + 85, y + 12.5);
-                                // Felder
+                                btmDoc.line(margin + 60, y + 3.5, margin + 60, y + 12.5);
+                                btmDoc.line(margin + 100, y + 3.5, margin + 100, y + 12.5);
+
+                                // Spalte 1: Reiseziel
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEDAUER', margin + 8, y + 5.5);
+                                btmDoc.text('REISEZIEL', margin + 8, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
                                 btmDoc.setFontSize(5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Travel Duration', margin + 8, y + 8.5);
+                                btmDoc.text('Destination', margin + 8, y + 8.5);
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(10);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Tage / Days`, margin + 8, y + 13.5);
-                                // Gültigkeitszeitraum
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('GÜLTIGKEITSZEITRAUM', margin + 90, y + 5.5);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Validity Period', margin + 90, y + 8.5);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(10);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate}`, margin + 90, y + 13.5);
                                 btmDoc.setFontSize(9);
-                                btmDoc.setTextColor(...gold);
-                                btmDoc.text(' - ', margin + 120, y + 13.5);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(formData.destination || 'Schengen-Raum', margin + 8, y + 13.5);
+
+                                // Spalte 2: Reisedauer
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('REISEDAUER', margin + 65, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Duration', margin + 65, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${endDate}`, margin + 127, y + 13.5);
+                                btmDoc.text(`${formData.travelDuration} Tage`, margin + 65, y + 13.5);
+
+                                // Spalte 3: Gültigkeitszeitraum
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('GÜLTIGKEIT', margin + 105, y + 5.5);
+                                btmDoc.setFont('helvetica', 'italic');
+                                btmDoc.setFontSize(5);
+                                btmDoc.setTextColor(...silver);
+                                btmDoc.text('Validity', margin + 105, y + 8.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(9);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 105, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
@@ -3480,7 +3812,11 @@
                                 creator: 'NEVPAZ BTM-Reise-Manager',
                                 keywords: 'BTM, Betäubungsmittel, Schengen, Reisebescheinigung'
                             });
-                            
+
+                            // Sicherheits-Wasserzeichen auf beide PDFs anwenden
+                            addSecurityWatermark(doc);
+                            addSecurityWatermark(btmDoc);
+
                             // PDFs als Base64 extrahieren für Email-Versand
                             const attestPdfBase64 = doc.output('datauristring').split(',')[1];
                             const btmPdfBase64 = btmDoc.output('datauristring').split(',')[1];
@@ -3557,7 +3893,7 @@
                 <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-700 pb-24">
                     
                     {/* Stripe Payment Modal */}
-                    <PaymentModal 
+                    <PaymentModal
                         isOpen={showPaymentModal}
                         onClose={() => setShowPaymentModal(false)}
                         product={pendingProduct}
@@ -3567,6 +3903,7 @@
                         doctorName={selectedDoctor?.name}
                         patientEmail={currentUser?.email}
                         formData={formData}
+                        doctorAssets={doctorAssets}
                     />
 
                     {/* Tutorial / Erklärvideo Modal */}
@@ -4030,12 +4367,17 @@
                                         </div>
                                     </div>
                                 </div>
-                                {formData.countryType === 'non-schengen' && (
-                                    <div className="mt-4 sm:mt-6 animate-slide-down">
-                                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Zielland</label>
-                                        <input type="text" name="destination" value={formData.destination} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="z.B. USA, Thailand, Japan..." />
-                                    </div>
-                                )}
+                                {/* Reiseziel für alle Reisen - Intelligente Suche */}
+                                <div className="mt-4 sm:mt-6 animate-slide-down">
+                                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                        {formData.countryType === 'schengen' ? 'Reiseziel (Stadt/Land)' : 'Zielland'}
+                                    </label>
+                                    <DestinationSearch
+                                        value={formData.destination}
+                                        onChange={(val) => setFormData(prev => ({ ...prev, destination: val }))}
+                                        countryType={formData.countryType}
+                                    />
+                                </div>
                                 
                                 {/* Gesundheitsamt-Suche für alle Reisen */}
                                 <div className="mt-6 animate-slide-down">

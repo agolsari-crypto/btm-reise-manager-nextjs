@@ -14,6 +14,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ungültiger Betrag' }, { status: 400 });
     }
 
+    // Checkout Session mit expliziten Zahlungsmethoden
+    // PayPal Domain ID: pmd_1ScAkBGhzHUByt1x2OcVCYSw
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'paypal'],
       line_items: [{
@@ -35,9 +37,11 @@ export async function POST(request: NextRequest) {
       locale: 'de',
     });
 
+    console.log('Stripe Session created:', session.id, 'Payment methods:', session.payment_method_types);
     return NextResponse.json({ sessionId: session.id, url: session.url });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Stripe Session Error:', error);
-    return NextResponse.json({ error: 'Checkout-Session konnte nicht erstellt werden' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
+    return NextResponse.json({ error: 'Checkout-Session konnte nicht erstellt werden', details: errorMessage }, { status: 500 });
   }
 }
