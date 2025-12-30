@@ -2969,11 +2969,12 @@
                                 drawPremiumField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
-                                const sexDisplay = formData.patSex === 'M' ? 'Männlich (Male)' : formData.patSex === 'F' ? 'Weiblich (Female)' : formData.patSex;
+                                const sexDisplay = formData.patSex === 'M' ? 'Männlich (Male)' : formData.patSex === 'F' ? 'Weiblich (Female)' : formData.patSex === 'D' ? 'Divers (Diverse)' : formData.patSex;
                                 drawPremiumField('Geschlecht', 'Sex', sexDisplay, margin + 80, y);
                                 y += 12;
+                                drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin, y);
+                                y += 12;
                                 drawPremiumField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
-                                drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 50, y);
                                 
                                 // Reiseziel & Reisedauer Box - Dezentes Design (3 Spalten)
                                 y += 14;
@@ -3522,10 +3523,12 @@
                                 drawNonSchengenField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
-                                drawNonSchengenField('Geschlecht', 'Sex', formData.patGender === 'male' ? 'Männlich (Male)' : formData.patGender === 'female' ? 'Weiblich (Female)' : 'Divers (Diverse)', margin + 80, y);
+                                const nonSchengenSexDisplay = formData.patSex === 'M' ? 'Männlich (Male)' : formData.patSex === 'F' ? 'Weiblich (Female)' : formData.patSex === 'D' ? 'Divers (Diverse)' : formData.patSex;
+                                drawNonSchengenField('Geschlecht', 'Sex', nonSchengenSexDisplay, margin + 80, y);
+                                y += 12;
+                                drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin, y);
                                 y += 12;
                                 drawNonSchengenField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
-                                drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 55, y);
                                 
                                 // REISEZIEL BOX (Neu für Non-Schengen)
                                 y += 14;
