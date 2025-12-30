@@ -1969,16 +1969,8 @@
                     try {
                         const { jsPDF } = window.jspdf;
                         
-                        // PDF mit Sicherheitseinschränkungen erstellen
-                        // Schutz: Öffnen + Drucken erlaubt, Kopieren/Bearbeiten verboten
-                        const doc = new jsPDF({
-                            encryption: {
-                                userPassword: '', // Kein Passwort zum Öffnen
-                                ownerPassword: 'NEVPAZ_DOC_2024_SECURE_' + Date.now(), // Einzigartiges Owner-Passwort
-                                userPermissions: ['print', 'print-highres'] // NUR Drucken erlaubt
-                                // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
-                            }
-                        });
+                        // PDF erstellen (ohne Passwortschutz für uneingeschränktes Drucken)
+                        const doc = new jsPDF();
                         const pageWidth = doc.internal.pageSize.getWidth();
                         const pageHeight = doc.internal.pageSize.getHeight();
                         doc.setFont('helvetica');
@@ -2626,15 +2618,8 @@
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
                             // BTM-Dokument mit Sicherheitseinschränkungen
-                            // Schutz: Öffnen + Drucken erlaubt, Kopieren/Bearbeiten verboten
-                            const btmDoc = new jsPDF({
-                                encryption: {
-                                    userPassword: '', // Kein Passwort zum Öffnen
-                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE_' + Date.now(), // Einzigartiges Owner-Passwort
-                                    userPermissions: ['print', 'print-highres'] // NUR Drucken erlaubt
-                                    // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
-                                }
-                            });
+                            // BTM-Formular PDF erstellen (ohne Passwortschutz für uneingeschränktes Drucken)
+                            const btmDoc = new jsPDF();
                             btmDoc.setFont('helvetica');
                             
                             // Helper für Bilder im BTM-Dokument
@@ -4455,8 +4440,7 @@
                                             <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                                         </div>
                                     </div>
-                                    <div className="hidden md:block md:col-span-2" />
-                                    <div className="sm:col-span-2 md:col-span-3"><AddressInput value={formData.patAddress} onChange={(val) => setFormData(prev => ({ ...prev, patAddress: val }))} /></div>
+                                    <div className="sm:col-span-2"><AddressInput value={formData.patAddress} onChange={(val) => setFormData(prev => ({ ...prev, patAddress: val }))} /></div>
                                 </div>
                             </section>
 
