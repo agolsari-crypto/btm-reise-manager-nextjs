@@ -1968,9 +1968,24 @@
 
                     try {
                         const { jsPDF } = window.jspdf;
-                        
-                        // PDF erstellen (ohne Passwortschutz für uneingeschränktes Drucken)
-                        const doc = new jsPDF();
+
+                        // Passwörter generieren
+                        // Druck-Passwort: Einfach, wird per Email versendet (4 Ziffern)
+                        const printPassword = String(Math.floor(1000 + Math.random() * 9000));
+                        // Bearbeitungs-Passwort: Komplex, wird NICHT versendet
+                        const ownerPassword = 'NEVPAZ_SECURE_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+
+                        // PDF mit Passwortschutz erstellen
+                        // userPassword = Druck-Passwort (wird versendet)
+                        // ownerPassword = Bearbeitungs-Passwort (geheim)
+                        const doc = new jsPDF({
+                            encryption: {
+                                userPassword: printPassword,
+                                ownerPassword: ownerPassword,
+                                userPermissions: ['print', 'print-highres']
+                                // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
+                            }
+                        });
                         const pageWidth = doc.internal.pageSize.getWidth();
                         const pageHeight = doc.internal.pageSize.getHeight();
                         doc.setFont('helvetica');
@@ -2617,9 +2632,14 @@
                             // Attest PDF wird später zusammen mit BTM-Formular per Email gesendet
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
-                            // BTM-Dokument mit Sicherheitseinschränkungen
-                            // BTM-Formular PDF erstellen (ohne Passwortschutz für uneingeschränktes Drucken)
-                            const btmDoc = new jsPDF();
+                            // BTM-Formular mit gleichem Passwortschutz wie Attest
+                            const btmDoc = new jsPDF({
+                                encryption: {
+                                    userPassword: printPassword,
+                                    ownerPassword: ownerPassword,
+                                    userPermissions: ['print', 'print-highres']
+                                }
+                            });
                             btmDoc.setFont('helvetica');
                             
                             // Helper für Bilder im BTM-Dokument
@@ -3837,6 +3857,8 @@
                                             travelStartDate: formData.travelStartDate,
                                             travelEndDate: endDate,
                                             destination: formData.destination,
+                                            // PDF-Passwort für Drucken (wird in Email angezeigt)
+                                            pdfPassword: printPassword,
                                             // Zahlungsinformationen für Buchhaltung
                                             paymentAmount: isAdminMode ? null : PRICES.bundle.toFixed(2),
                                             paymentMethod: 'Stripe',

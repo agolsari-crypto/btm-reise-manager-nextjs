@@ -10,15 +10,17 @@ const BUCHHALTUNG_EMAIL = 'belege@nevpaz.de';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
-      patientEmail, 
-      patientName, 
+    const {
+      patientEmail,
+      patientName,
       doctorName,
       btmPdfBase64,
       attestPdfBase64,
       travelStartDate,
       travelEndDate,
       destination,
+      // PDF-Passwort für Drucken
+      pdfPassword,
       // Zahlungsinformationen
       paymentAmount,
       paymentMethod,
@@ -124,17 +126,33 @@ export async function POST(request: NextRequest) {
       <!-- Documents Section -->
       <div style="margin: 0 0 28px;">
         <p style="color: #1e293b; font-size: 15px; font-weight: 700; margin: 0 0 16px;">📎 Angehängte Dokumente:</p>
-        
+
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
           <p style="color: #1e293b; font-size: 14px; font-weight: 600; margin: 0 0 6px;">1. BTM-Formular (Schengen-Bescheinigung)</p>
           <p style="color: #64748b; font-size: 13px; margin: 0; line-height: 1.5;">Amtliches Mitführungsformular nach §4 BtMVV für Reisen innerhalb des Schengen-Raums. Dieses Dokument muss vom zuständigen Gesundheitsamt beglaubigt werden.</p>
         </div>
-        
+
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px;">
           <p style="color: #1e293b; font-size: 14px; font-weight: 600; margin: 0 0 6px;">2. Ärztliches Attest (Deutsch/Englisch)</p>
           <p style="color: #64748b; font-size: 13px; margin: 0; line-height: 1.5;">Zweisprachige ärztliche Bescheinigung über die medizinische Notwendigkeit Ihrer Medikation. Empfohlen für alle internationalen Reisen.</p>
         </div>
       </div>
+
+      ${pdfPassword ? `
+      <!-- PASSWORD BOX - WICHTIG -->
+      <div style="background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 2px solid #ef4444; border-radius: 16px; padding: 24px; margin: 0 0 28px;">
+        <div style="text-align: center;">
+          <p style="color: #dc2626; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 12px;">🔐 PDF-Passwort zum Öffnen & Drucken</p>
+          <div style="background: white; border: 2px dashed #ef4444; border-radius: 12px; padding: 16px; display: inline-block; min-width: 120px;">
+            <p style="color: #1e293b; font-size: 32px; font-weight: 800; letter-spacing: 8px; margin: 0; font-family: 'Courier New', monospace;">${pdfPassword}</p>
+          </div>
+          <p style="color: #991b1b; font-size: 13px; margin: 16px 0 0; line-height: 1.6;">
+            <strong>Wichtig:</strong> Dieses Passwort wird benötigt, um die PDF-Dokumente zu öffnen und zu drucken.<br>
+            Bitte notieren Sie sich dieses Passwort oder speichern Sie diese Email.
+          </p>
+        </div>
+      </div>
+      ` : ''}
       
       <!-- Instructions -->
       <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; border-radius: 16px; padding: 24px; margin: 0 0 28px;">
