@@ -440,42 +440,6 @@
             { id: 'lindenau', name: 'Dr. med. Elna Lindenau', title: 'Dr. med.', lastName: 'Lindenau', firstName: 'Elna', label: 'Dr. med. Elna Lindenau', title_en: 'Medical Doctor', address: 'Privatpraxis NEVPAZ, Dammtorwall 7a, 20354 Hamburg, Deutschland', phone: '+49 40 238353790', email: 'info@nevpaz.de' },
         ];
 
-        // Globale Assets die von allen Benutzern verwendet werden
-        // Diese werden von /assets-config.json geladen oder aus localStorage
-        let GLOBAL_DOCTOR_ASSETS = {};
-        let GLOBAL_LOGO = null;
-        
-        // Funktion zum Laden der globalen Assets
-        const loadGlobalAssets = async () => {
-            try {
-                // Versuche zuerst, Assets von der Server-Konfiguration zu laden
-                const response = await fetch('/assets-config.json');
-                if (response.ok) {
-                    const config = await response.json();
-                    if (config.doctorAssets) GLOBAL_DOCTOR_ASSETS = config.doctorAssets;
-                    if (config.logo) GLOBAL_LOGO = config.logo;
-                    console.log('✅ Globale Assets von Server geladen');
-                    return true;
-                }
-            } catch (err) {
-                console.log('ℹ️ Keine Server-Assets gefunden, verwende localStorage');
-            }
-            
-            // Fallback: localStorage
-            try {
-                const savedAssets = localStorage.getItem('nevpaz_assets');
-                const savedLogo = localStorage.getItem('nevpaz_logo');
-                if (savedAssets) GLOBAL_DOCTOR_ASSETS = JSON.parse(savedAssets);
-                if (savedLogo) GLOBAL_LOGO = savedLogo;
-            } catch (err) {
-                console.error('Fehler beim Laden der Assets:', err);
-            }
-            return false;
-        };
-        
-        // Assets beim Seitenstart laden
-        loadGlobalAssets();
-
         const MEDICATION_PRESETS = [
             { name: 'Ritalin Adult', substance: 'Methylphenidate' },
             { name: 'Medikinet adult', substance: 'Methylphenidate' },
@@ -510,224 +474,6 @@
             const [isSearching, setIsSearching] = useState(false);
             const [searchResult, setSearchResult] = useState(null);
             const [showManualInput, setShowManualInput] = useState(false);
-            const [authorityType, setAuthorityType] = useState('gesundheitsamt');
-            const [distance, setDistance] = useState(null);
-            const [alternative, setAlternative] = useState(null);
-            const [altDistance, setAltDistance] = useState(null);
-
-            // PLZ-Koordinaten für Entfernungsberechnung (alle 2-stelligen PLZ-Bereiche)
-            const PLZ_COORDS = {
-                // Hamburg & Schleswig-Holstein
-                '20': { lat: 53.55, lon: 10.00 }, '21': { lat: 53.46, lon: 10.18 }, '22': { lat: 53.60, lon: 10.05 },
-                '23': { lat: 53.87, lon: 10.69 }, '24': { lat: 54.32, lon: 10.14 }, '25': { lat: 53.75, lon: 9.65 },
-                // Niedersachsen & Bremen
-                '26': { lat: 53.14, lon: 8.22 }, '27': { lat: 53.08, lon: 8.80 }, '28': { lat: 53.08, lon: 8.80 },
-                '29': { lat: 52.97, lon: 10.57 }, '30': { lat: 52.37, lon: 9.74 }, '31': { lat: 52.15, lon: 9.95 },
-                // NRW
-                '32': { lat: 52.02, lon: 8.53 }, '33': { lat: 51.93, lon: 8.88 }, '34': { lat: 51.31, lon: 9.50 },
-                '40': { lat: 51.23, lon: 6.78 }, '41': { lat: 51.19, lon: 6.44 }, '42': { lat: 51.26, lon: 7.15 },
-                '44': { lat: 51.51, lon: 7.47 }, '45': { lat: 51.45, lon: 7.01 }, '46': { lat: 51.54, lon: 6.76 },
-                '47': { lat: 51.43, lon: 6.76 }, '48': { lat: 51.96, lon: 7.63 }, '49': { lat: 52.28, lon: 8.05 },
-                '50': { lat: 50.94, lon: 6.96 }, '51': { lat: 50.93, lon: 7.10 }, '52': { lat: 50.78, lon: 6.08 },
-                '53': { lat: 50.73, lon: 7.10 },
-                // Hessen
-                '34': { lat: 51.31, lon: 9.50 }, '35': { lat: 50.56, lon: 8.67 }, '36': { lat: 50.55, lon: 9.68 },
-                '60': { lat: 50.11, lon: 8.68 }, '61': { lat: 50.14, lon: 8.56 }, '63': { lat: 50.00, lon: 8.95 },
-                '64': { lat: 49.87, lon: 8.65 }, '65': { lat: 50.08, lon: 8.24 },
-                // Rheinland-Pfalz & Saarland
-                '54': { lat: 49.75, lon: 6.64 }, '55': { lat: 50.00, lon: 8.27 }, '56': { lat: 50.36, lon: 7.59 },
-                '57': { lat: 50.87, lon: 7.73 }, '66': { lat: 49.24, lon: 7.00 }, '67': { lat: 49.44, lon: 8.44 },
-                // Baden-Württemberg
-                '68': { lat: 49.49, lon: 8.47 }, '69': { lat: 49.41, lon: 8.69 }, '70': { lat: 48.78, lon: 9.18 },
-                '71': { lat: 48.83, lon: 9.22 }, '72': { lat: 48.52, lon: 9.05 }, '73': { lat: 48.80, lon: 9.65 },
-                '74': { lat: 49.14, lon: 9.22 }, '75': { lat: 48.89, lon: 8.70 }, '76': { lat: 49.01, lon: 8.40 },
-                '77': { lat: 48.47, lon: 7.95 }, '78': { lat: 47.66, lon: 9.17 }, '79': { lat: 47.99, lon: 7.85 },
-                '88': { lat: 47.72, lon: 9.60 }, '89': { lat: 48.40, lon: 10.00 },
-                // Bayern
-                '80': { lat: 48.14, lon: 11.58 }, '81': { lat: 48.12, lon: 11.60 }, '82': { lat: 48.07, lon: 11.46 },
-                '83': { lat: 47.86, lon: 11.94 }, '84': { lat: 48.25, lon: 12.25 }, '85': { lat: 48.40, lon: 11.74 },
-                '86': { lat: 48.37, lon: 10.90 }, '87': { lat: 47.73, lon: 10.31 }, '90': { lat: 49.45, lon: 11.08 },
-                '91': { lat: 49.60, lon: 11.01 }, '92': { lat: 49.02, lon: 12.10 }, '93': { lat: 49.01, lon: 12.10 },
-                '94': { lat: 48.57, lon: 13.46 }, '95': { lat: 50.00, lon: 11.91 }, '96': { lat: 50.09, lon: 10.88 },
-                '97': { lat: 49.79, lon: 9.94 },
-                // Berlin & Brandenburg
-                '10': { lat: 52.52, lon: 13.40 }, '12': { lat: 52.48, lon: 13.43 }, '13': { lat: 52.54, lon: 13.35 },
-                '14': { lat: 52.39, lon: 13.07 }, '15': { lat: 52.34, lon: 14.05 }, '16': { lat: 52.76, lon: 13.29 },
-                // Mecklenburg-Vorpommern
-                '17': { lat: 53.63, lon: 11.41 }, '18': { lat: 54.09, lon: 12.13 }, '19': { lat: 53.63, lon: 11.41 },
-                // Sachsen
-                '01': { lat: 51.05, lon: 13.74 }, '02': { lat: 51.15, lon: 14.97 }, '04': { lat: 51.34, lon: 12.37 },
-                '08': { lat: 50.72, lon: 12.49 }, '09': { lat: 50.83, lon: 12.92 },
-                // Sachsen-Anhalt
-                '06': { lat: 51.48, lon: 11.97 }, '39': { lat: 52.13, lon: 11.63 },
-                // Thüringen
-                '07': { lat: 50.93, lon: 11.59 }, '98': { lat: 50.98, lon: 11.03 }, '99': { lat: 50.98, lon: 11.03 },
-                // Brandenburg (weitere)
-                '03': { lat: 51.76, lon: 14.33 },
-            };
-
-            // Behörden-Koordinaten (erweitert)
-            const AUTH_COORDS = {
-                // Ärztekammern
-                'Ärztekammer Hamburg': { lat: 53.58, lon: 10.02 },
-                'Ärztekammer Schleswig-Holstein': { lat: 53.94, lon: 10.31 },
-                'Ärztekammer Niedersachsen': { lat: 52.40, lon: 9.80 },
-                'Ärztekammer Bremen': { lat: 53.09, lon: 8.81 },
-                'Ärztekammer Nordrhein': { lat: 51.26, lon: 6.74 },
-                'Ärztekammer Westfalen-Lippe': { lat: 51.96, lon: 7.63 },
-                'Landesärztekammer Hessen': { lat: 50.13, lon: 8.62 },
-                'Landesärztekammer Rheinland-Pfalz': { lat: 50.00, lon: 8.27 },
-                'Ärztekammer des Saarlandes': { lat: 49.24, lon: 7.00 },
-                'Landesärztekammer Baden-Württemberg': { lat: 48.75, lon: 9.17 },
-                'Bayerische Landesärztekammer': { lat: 48.14, lon: 11.60 },
-                'Ärztekammer Berlin': { lat: 52.51, lon: 13.39 },
-                'Landesärztekammer Brandenburg': { lat: 51.76, lon: 14.33 },
-                'Ärztekammer Mecklenburg-Vorpommern': { lat: 54.09, lon: 12.13 },
-                'Sächsische Landesärztekammer': { lat: 51.05, lon: 13.74 },
-                'Ärztekammer Sachsen-Anhalt': { lat: 52.13, lon: 11.63 },
-                'Landesärztekammer Thüringen': { lat: 50.93, lon: 11.59 },
-                // Gesundheitsämter
-                'Gesundheitsamt Hamburg-Mitte': { lat: 53.55, lon: 10.02 },
-                'Gesundheitsamt Hamburg-Bergedorf': { lat: 53.49, lon: 10.21 },
-                'Gesundheitsamt Hamburg-Wandsbek': { lat: 53.58, lon: 10.08 },
-                'Gesundheitsamt Hamburg-Nord': { lat: 53.60, lon: 10.02 },
-                'Gesundheitsamt Hamburg-Altona': { lat: 53.55, lon: 9.93 },
-                'Gesundheitsamt Hamburg-Harburg': { lat: 53.46, lon: 9.98 },
-                'Gesundheitsamt Hamburg-Eimsbüttel': { lat: 53.57, lon: 9.95 },
-                'Gesundheitsamt Hansestadt Lübeck': { lat: 53.87, lon: 10.69 },
-                'Gesundheitsamt Kiel': { lat: 54.32, lon: 10.14 },
-                'Fachdienst Gesundheit Kreis Pinneberg': { lat: 53.75, lon: 9.65 },
-                'Gesundheitsamt Berlin-Mitte': { lat: 52.54, lon: 13.36 },
-                'Gesundheitsamt München': { lat: 48.14, lon: 11.56 },
-                'Gesundheitsamt Frankfurt am Main': { lat: 50.11, lon: 8.68 },
-                'Gesundheitsamt Köln': { lat: 50.94, lon: 6.95 },
-                'Gesundheitsamt Düsseldorf': { lat: 51.21, lon: 6.79 },
-                'Gesundheitsamt Stuttgart': { lat: 48.78, lon: 9.18 },
-                'Gesundheitsamt Region Hannover': { lat: 52.37, lon: 9.72 },
-            };
-
-            // Entfernung berechnen (Haversine)
-            const calcDistance = (lat1, lon1, lat2, lon2) => {
-                const R = 6371;
-                const dLat = (lat2 - lat1) * Math.PI / 180;
-                const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-                return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-            };
-
-            // Ärztekammern-Datenbank (kostenlose Beglaubigung) - alle 17 Landesärztekammern
-            const MEDICAL_CHAMBERS = {
-                // Hamburg (20-22)
-                '20': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
-                '21': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
-                '22': { name: 'Ärztekammer Hamburg', address: 'Humboldtstraße 56, 22083 Hamburg', phone: '040 202299-0', email: 'post@aekhh.de', fax: '040 202299-400', kostenlos: true },
-                // Schleswig-Holstein (23-25)
-                '23': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
-                '24': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
-                '25': { name: 'Ärztekammer Schleswig-Holstein', address: 'Bismarckallee 8-12, 23795 Bad Segeberg', phone: '04551 803-0', email: 'info@aeksh.de', fax: '04551 803-101', kostenlos: true },
-                // Niedersachsen (26-27, 29-31, 37-38, 49)
-                '26': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                '27': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                '29': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                '30': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                '31': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                '37': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                '38': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                '49': { name: 'Ärztekammer Niedersachsen', address: 'Karl-Wiechert-Allee 18-22, 30625 Hannover', phone: '0511 380-02', email: 'info@aekn.de', fax: '0511 380-2240', kostenlos: true },
-                // Bremen (28)
-                '28': { name: 'Ärztekammer Bremen', address: 'Schwachhauser Heerstraße 30, 28209 Bremen', phone: '0421 3404-200', email: 'info@aekhb.de', fax: '0421 3404-209', kostenlos: true },
-                // NRW Westfalen-Lippe (32-33, 44, 48)
-                '32': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
-                '33': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
-                '44': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
-                '48': { name: 'Ärztekammer Westfalen-Lippe', address: 'Gartenstraße 210-214, 48147 Münster', phone: '0251 929-0', email: 'posteingang@aekwl.de', fax: '0251 929-2999', kostenlos: true },
-                // NRW Nordrhein (40-42, 45-47, 50-53)
-                '40': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '41': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '42': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '45': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '46': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '47': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '50': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '51': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '52': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                '53': { name: 'Ärztekammer Nordrhein', address: 'Tersteegenstraße 9, 40474 Düsseldorf', phone: '0211 4302-0', email: 'info@aekno.de', fax: '0211 4302-1200', kostenlos: true },
-                // Hessen (34-36, 60-65)
-                '34': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '35': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '36': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '60': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '61': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '63': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '64': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                '65': { name: 'Landesärztekammer Hessen', address: 'Im Vogelsgesang 3, 60488 Frankfurt', phone: '069 97672-0', email: 'info@laekh.de', fax: '069 97672-128', kostenlos: true },
-                // Rheinland-Pfalz (54-57, 67)
-                '54': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
-                '55': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
-                '56': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
-                '57': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
-                '67': { name: 'Landesärztekammer Rheinland-Pfalz', address: 'Deutschhausplatz 3, 55116 Mainz', phone: '06131 28820-0', email: 'info@laek-rlp.de', fax: '06131 28820-80', kostenlos: true },
-                // Saarland (66)
-                '66': { name: 'Ärztekammer des Saarlandes', address: 'Faktoreistraße 4, 66111 Saarbrücken', phone: '0681 4003-0', email: 'info@aeksaar.de', fax: '0681 4003-340', kostenlos: true },
-                // Baden-Württemberg (68-79, 88-89)
-                '68': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '69': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '70': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '71': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '72': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '73': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '74': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '75': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '76': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '77': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '78': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '79': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '88': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                '89': { name: 'Landesärztekammer Baden-Württemberg', address: 'Jahnstraße 40, 70597 Stuttgart', phone: '0711 76989-0', email: 'info@laek-bw.de', fax: '0711 76989-50', kostenlos: true },
-                // Bayern (80-97)
-                '80': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '81': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '82': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '83': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '84': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '85': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '86': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '87': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '90': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '91': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '92': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '93': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '94': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '95': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '96': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                '97': { name: 'Bayerische Landesärztekammer', address: 'Mühlbaurstraße 16, 81677 München', phone: '089 4147-0', email: 'info@blaek.de', fax: '089 4147-280', kostenlos: true },
-                // Berlin (10, 12-14)
-                '10': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
-                '12': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
-                '13': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
-                '14': { name: 'Ärztekammer Berlin', address: 'Friedrichstraße 16, 10969 Berlin', phone: '030 40806-0', email: 'kammer@aekb.de', fax: '030 40806-3499', kostenlos: true },
-                // Brandenburg (03, 14-16)
-                '03': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', kostenlos: true },
-                '15': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', kostenlos: true },
-                '16': { name: 'Landesärztekammer Brandenburg', address: 'Dreifertstraße 12, 03044 Cottbus', phone: '0355 78010-0', email: 'info@laekb.de', fax: '0355 78010-1136', kostenlos: true },
-                // Mecklenburg-Vorpommern (17-19)
-                '17': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', kostenlos: true },
-                '18': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', kostenlos: true },
-                '19': { name: 'Ärztekammer Mecklenburg-Vorpommern', address: 'August-Bebel-Straße 9a, 18055 Rostock', phone: '0381 49280-0', email: 'info@aek-mv.de', fax: '0381 49280-80', kostenlos: true },
-                // Sachsen (01-02, 04, 08-09)
-                '01': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
-                '02': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
-                '04': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
-                '08': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
-                '09': { name: 'Sächsische Landesärztekammer', address: 'Schützenhöhe 16, 01099 Dresden', phone: '0351 8267-0', email: 'info@slaek.de', fax: '0351 8267-412', kostenlos: true },
-                // Sachsen-Anhalt (06, 39)
-                '06': { name: 'Ärztekammer Sachsen-Anhalt', address: 'Doctor-Eisenbart-Ring 2, 39120 Magdeburg', phone: '0391 6054-6', email: 'info@aeksa.de', fax: '0391 6054-7000', kostenlos: true },
-                '39': { name: 'Ärztekammer Sachsen-Anhalt', address: 'Doctor-Eisenbart-Ring 2, 39120 Magdeburg', phone: '0391 6054-6', email: 'info@aeksa.de', fax: '0391 6054-7000', kostenlos: true },
-                // Thüringen (07, 98-99)
-                '07': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'info@laek-thueringen.de', fax: '03641 614-169', kostenlos: true },
-                '98': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'info@laek-thueringen.de', fax: '03641 614-169', kostenlos: true },
-                '99': { name: 'Landesärztekammer Thüringen', address: 'Im Semmicht 33, 07751 Jena', phone: '03641 614-0', email: 'info@laek-thueringen.de', fax: '03641 614-169', kostenlos: true },
-            };
 
             // Vollständige Gesundheitsämter-Datenbank mit allen Kontaktdaten
             const HEALTH_AUTHORITIES = {
@@ -936,65 +682,38 @@
             };
 
             const searchHealthAuthority = async () => {
-                if (plz.length < 2) return;
+                if (plz.length < 4) return;
                 setIsSearching(true);
                 setShowManualInput(false);
-                setDistance(null);
-                setAlternative(null);
-                setAltDistance(null);
                 
                 setTimeout(() => {
-                    let found = null;
-                    let alt = null;
-                    const prefix = plz.substring(0, 2);
-                    const userCoords = PLZ_COORDS[prefix];
+                    // Zuerst nach vollständiger PLZ suchen
+                    let found = HEALTH_AUTHORITIES[plz];
                     
-                    if (authorityType === 'aerztekammer') {
-                        found = MEDICAL_CHAMBERS[prefix];
-                        const altKey = Object.keys(HEALTH_AUTHORITIES).find(k => k.startsWith(prefix));
-                        if (altKey) alt = HEALTH_AUTHORITIES[altKey];
-                    } else {
-                        found = HEALTH_AUTHORITIES[plz];
-                        if (!found && plz.length >= 4) found = HEALTH_AUTHORITIES[plz.substring(0, 4)];
-                        if (!found && plz.length >= 3) found = HEALTH_AUTHORITIES[plz.substring(0, 3)];
-                        if (!found) {
-                            const matchingKey = Object.keys(HEALTH_AUTHORITIES).find(key => key.startsWith(prefix));
-                            if (matchingKey) found = HEALTH_AUTHORITIES[matchingKey];
+                    // Falls nicht gefunden, nach PLZ-Präfix suchen (erste 4 Stellen, dann 3, dann 2)
+                    if (!found && plz.length >= 4) {
+                        found = HEALTH_AUTHORITIES[plz.substring(0, 4)];
+                    }
+                    if (!found && plz.length >= 3) {
+                        found = HEALTH_AUTHORITIES[plz.substring(0, 3)];
+                    }
+                    if (!found && plz.length >= 2) {
+                        // Suche nach PLZ-Bereichen die mit den ersten 2 Stellen beginnen
+                        const prefix = plz.substring(0, 2);
+                        const matchingKey = Object.keys(HEALTH_AUTHORITIES).find(key => key.startsWith(prefix));
+                        if (matchingKey) {
+                            found = HEALTH_AUTHORITIES[matchingKey];
                         }
-                        alt = MEDICAL_CHAMBERS[prefix];
                     }
                     
                     if (found) {
                         setSearchResult(found);
-                        if (userCoords && AUTH_COORDS[found.name]) {
-                            const ac = AUTH_COORDS[found.name];
-                            setDistance(calcDistance(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
-                        }
                     } else {
                         setSearchResult(null);
                         setShowManualInput(true);
                     }
-                    
-                    if (alt) {
-                        setAlternative(alt);
-                        if (userCoords && AUTH_COORDS[alt.name]) {
-                            const ac = AUTH_COORDS[alt.name];
-                            setAltDistance(calcDistance(userCoords.lat, userCoords.lon, ac.lat, ac.lon));
-                        }
-                    }
-                    
                     setIsSearching(false);
                 }, 500);
-            };
-
-            const switchToAlternative = () => {
-                if (alternative) {
-                    setSearchResult(alternative);
-                    setAlternative(null);
-                    setDistance(altDistance);
-                    setAltDistance(null);
-                    setAuthorityType(authorityType === 'aerztekammer' ? 'gesundheitsamt' : 'aerztekammer');
-                }
             };
 
             const selectAuthority = (authority) => {
@@ -1005,34 +724,16 @@
 
             return (
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-5">
-                    <div className="mb-4 p-3 bg-white/80 rounded-xl border border-amber-100">
-                        <p className="text-xs text-slate-600">
-                            <span className="font-semibold text-amber-800">Beglaubigung:</span> Wählen Sie <strong>Gesundheitsamt</strong> (10-25€) oder <strong>Ärztekammer</strong> (kostenlos).
-                        </p>
-                    </div>
-                    
-                    <div className="flex gap-2 mb-4">
-                        <button onClick={() => setAuthorityType('gesundheitsamt')} className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${authorityType === 'gesundheitsamt' ? 'border-amber-500 bg-amber-100 text-amber-800' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-300'}`}>
-                            Gesundheitsamt (10-25€)
-                        </button>
-                        <button onClick={() => setAuthorityType('aerztekammer')} className={`flex-1 p-2 rounded-lg border-2 text-xs font-medium transition-all ${authorityType === 'aerztekammer' ? 'border-emerald-500 bg-emerald-100 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300'}`}>
-                            Ärztekammer (kostenlos)
-                        </button>
-                    </div>
-                    
                     <div className="flex items-center gap-2 mb-4">
                         <Icons.Building2 className="h-5 w-5 text-amber-600" />
-                        <span className="text-sm font-bold text-amber-800">{authorityType === 'aerztekammer' ? 'Zuständige Ärztekammer' : 'Zuständiges Gesundheitsamt'}</span>
+                        <span className="text-sm font-bold text-amber-800">Zuständiges Gesundheitsamt</span>
                     </div>
                     
                     {currentAuthority?.name ? (
-                        <div className={`bg-white rounded-xl border ${currentAuthority.kostenlos ? 'border-emerald-200' : 'border-amber-200'} p-4 mb-4`}>
+                        <div className="bg-white rounded-xl border border-amber-200 p-4 mb-4">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <div className="font-bold text-slate-800">{currentAuthority.name}</div>
-                                        {currentAuthority.kostenlos && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">KOSTENLOS</span>}
-                                    </div>
+                                    <div className="font-bold text-slate-800">{currentAuthority.name}</div>
                                     <div className="text-sm text-slate-600">{currentAuthority.address}</div>
                                     {currentAuthority.phone && (
                                         <div className="text-sm text-slate-600 flex items-center gap-2">
@@ -1090,11 +791,10 @@
                     </div>
                     
                     {searchResult && (
-                        <div className={`mt-4 bg-white rounded-xl border ${searchResult.kostenlos ? 'border-emerald-200' : 'border-amber-200'} p-4 animate-slide-down`}>
-                            <div className={`flex items-center gap-2 ${searchResult.kostenlos ? 'text-emerald-600' : 'text-amber-600'} text-xs font-bold mb-2`}>
+                        <div className="mt-4 bg-white rounded-xl border border-emerald-200 p-4 animate-slide-down">
+                            <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold mb-2">
                                 <Icons.CheckCircle className="h-4 w-4" />
                                 Gefunden für PLZ {plz}
-                                {searchResult.kostenlos && <span className="ml-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">KOSTENLOS</span>}
                             </div>
                             <div className="space-y-1">
                                 <div className="font-bold text-slate-800">{searchResult.name}</div>
@@ -1116,50 +816,12 @@
                                     </div>
                                 )}
                             </div>
-                            
-                            {distance !== null && (
-                                <div className={`mt-3 flex items-center gap-2 px-3 py-2 rounded-lg ${distance > 50 ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 border border-slate-200'}`}>
-                                    <Icons.MapPin className={`h-4 w-4 ${distance > 50 ? 'text-amber-500' : 'text-slate-500'}`} />
-                                    <span className={`text-sm font-medium ${distance > 50 ? 'text-amber-700' : 'text-slate-700'}`}>ca. {distance} km entfernt</span>
-                                    {distance > 50 && <span className="text-xs text-amber-600">(weite Strecke)</span>}
-                                </div>
-                            )}
-                            
                             <button 
                                 onClick={() => selectAuthority(searchResult)}
-                                className={`mt-3 w-full py-2 ${searchResult.kostenlos ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-amber-500 hover:bg-amber-600'} text-white rounded-lg text-sm font-medium transition-colors`}
+                                className="mt-3 w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors"
                             >
                                 Übernehmen
                             </button>
-                            
-                            {alternative && (
-                                <div className="mt-3 pt-3 border-t border-slate-200">
-                                    <div className="text-xs text-slate-500 mb-2">
-                                        {authorityType === 'aerztekammer' ? 'Alternativ beim Gesundheitsamt (10-25€):' : 'Alternativ kostenlos bei der Ärztekammer:'}
-                                    </div>
-                                    <div className={`p-3 rounded-lg border ${authorityType === 'aerztekammer' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className="font-medium text-slate-800 text-sm">{alternative.name}</div>
-                                                <div className="text-xs text-slate-500">{alternative.address}</div>
-                                                {altDistance !== null && (
-                                                    <div className="flex items-center gap-1 mt-1">
-                                                        <Icons.MapPin className="h-3 w-3 text-slate-400" />
-                                                        <span className="text-xs text-slate-600">ca. {altDistance} km</span>
-                                                        {alternative.kostenlos && <span className="ml-2 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">KOSTENLOS</span>}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <button 
-                                                onClick={switchToAlternative}
-                                                className={`px-3 py-1.5 ${authorityType === 'aerztekammer' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white rounded text-xs font-medium`}
-                                            >
-                                                Wechseln
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
                     
@@ -1209,272 +871,6 @@
             );
         };
 
-        // Destination Search Komponente (Stadt/Land mit Autovervollständigung)
-        const DestinationSearch = ({ onSelect, currentDestination, isSchengen }) => {
-            const [query, setQuery] = useState('');
-            const [suggestions, setSuggestions] = useState([]);
-            const [isOpen, setIsOpen] = useState(false);
-            const inputRef = useRef(null);
-            
-            // Umfangreiche Liste von Destinationen (englische Namen)
-            const DESTINATIONS = [
-                // Schengen-Länder (Hauptstädte und wichtige Städte)
-                { city: 'Amsterdam', country: 'Netherlands', code: 'NL', schengen: true },
-                { city: 'Athens', country: 'Greece', code: 'GR', schengen: true },
-                { city: 'Barcelona', country: 'Spain', code: 'ES', schengen: true },
-                { city: 'Berlin', country: 'Germany', code: 'DE', schengen: true },
-                { city: 'Bern', country: 'Switzerland', code: 'CH', schengen: true },
-                { city: 'Brussels', country: 'Belgium', code: 'BE', schengen: true },
-                { city: 'Budapest', country: 'Hungary', code: 'HU', schengen: true },
-                { city: 'Copenhagen', country: 'Denmark', code: 'DK', schengen: true },
-                { city: 'Dublin', country: 'Ireland', code: 'IE', schengen: false },
-                { city: 'Florence', country: 'Italy', code: 'IT', schengen: true },
-                { city: 'Frankfurt', country: 'Germany', code: 'DE', schengen: true },
-                { city: 'Geneva', country: 'Switzerland', code: 'CH', schengen: true },
-                { city: 'Helsinki', country: 'Finland', code: 'FI', schengen: true },
-                { city: 'Lisbon', country: 'Portugal', code: 'PT', schengen: true },
-                { city: 'Ljubljana', country: 'Slovenia', code: 'SI', schengen: true },
-                { city: 'Luxembourg', country: 'Luxembourg', code: 'LU', schengen: true },
-                { city: 'Madrid', country: 'Spain', code: 'ES', schengen: true },
-                { city: 'Milan', country: 'Italy', code: 'IT', schengen: true },
-                { city: 'Monaco', country: 'Monaco', code: 'MC', schengen: true },
-                { city: 'Munich', country: 'Germany', code: 'DE', schengen: true },
-                { city: 'Nice', country: 'France', code: 'FR', schengen: true },
-                { city: 'Oslo', country: 'Norway', code: 'NO', schengen: true },
-                { city: 'Paris', country: 'France', code: 'FR', schengen: true },
-                { city: 'Prague', country: 'Czech Republic', code: 'CZ', schengen: true },
-                { city: 'Reykjavik', country: 'Iceland', code: 'IS', schengen: true },
-                { city: 'Riga', country: 'Latvia', code: 'LV', schengen: true },
-                { city: 'Rome', country: 'Italy', code: 'IT', schengen: true },
-                { city: 'Salzburg', country: 'Austria', code: 'AT', schengen: true },
-                { city: 'Stockholm', country: 'Sweden', code: 'SE', schengen: true },
-                { city: 'Tallinn', country: 'Estonia', code: 'EE', schengen: true },
-                { city: 'Venice', country: 'Italy', code: 'IT', schengen: true },
-                { city: 'Vienna', country: 'Austria', code: 'AT', schengen: true },
-                { city: 'Vilnius', country: 'Lithuania', code: 'LT', schengen: true },
-                { city: 'Warsaw', country: 'Poland', code: 'PL', schengen: true },
-                { city: 'Zurich', country: 'Switzerland', code: 'CH', schengen: true },
-                
-                // Non-Schengen Europa
-                { city: 'London', country: 'United Kingdom', code: 'GB', schengen: false },
-                { city: 'Manchester', country: 'United Kingdom', code: 'GB', schengen: false },
-                { city: 'Edinburgh', country: 'United Kingdom', code: 'GB', schengen: false },
-                { city: 'Sofia', country: 'Bulgaria', code: 'BG', schengen: false },
-                { city: 'Bucharest', country: 'Romania', code: 'RO', schengen: false },
-                { city: 'Zagreb', country: 'Croatia', code: 'HR', schengen: true },
-                { city: 'Belgrade', country: 'Serbia', code: 'RS', schengen: false },
-                { city: 'Kyiv', country: 'Ukraine', code: 'UA', schengen: false },
-                { city: 'Moscow', country: 'Russia', code: 'RU', schengen: false },
-                { city: 'Istanbul', country: 'Turkey', code: 'TR', schengen: false },
-                { city: 'Ankara', country: 'Turkey', code: 'TR', schengen: false },
-                
-                // Nordamerika
-                { city: 'New York', country: 'United States', code: 'US', schengen: false },
-                { city: 'Los Angeles', country: 'United States', code: 'US', schengen: false },
-                { city: 'Chicago', country: 'United States', code: 'US', schengen: false },
-                { city: 'San Francisco', country: 'United States', code: 'US', schengen: false },
-                { city: 'Miami', country: 'United States', code: 'US', schengen: false },
-                { city: 'Las Vegas', country: 'United States', code: 'US', schengen: false },
-                { city: 'Boston', country: 'United States', code: 'US', schengen: false },
-                { city: 'Washington D.C.', country: 'United States', code: 'US', schengen: false },
-                { city: 'Seattle', country: 'United States', code: 'US', schengen: false },
-                { city: 'Toronto', country: 'Canada', code: 'CA', schengen: false },
-                { city: 'Vancouver', country: 'Canada', code: 'CA', schengen: false },
-                { city: 'Montreal', country: 'Canada', code: 'CA', schengen: false },
-                { city: 'Mexico City', country: 'Mexico', code: 'MX', schengen: false },
-                { city: 'Cancun', country: 'Mexico', code: 'MX', schengen: false },
-                
-                // Asien
-                { city: 'Tokyo', country: 'Japan', code: 'JP', schengen: false },
-                { city: 'Osaka', country: 'Japan', code: 'JP', schengen: false },
-                { city: 'Kyoto', country: 'Japan', code: 'JP', schengen: false },
-                { city: 'Seoul', country: 'South Korea', code: 'KR', schengen: false },
-                { city: 'Beijing', country: 'China', code: 'CN', schengen: false },
-                { city: 'Shanghai', country: 'China', code: 'CN', schengen: false },
-                { city: 'Hong Kong', country: 'Hong Kong', code: 'HK', schengen: false },
-                { city: 'Singapore', country: 'Singapore', code: 'SG', schengen: false },
-                { city: 'Bangkok', country: 'Thailand', code: 'TH', schengen: false },
-                { city: 'Phuket', country: 'Thailand', code: 'TH', schengen: false },
-                { city: 'Chiang Mai', country: 'Thailand', code: 'TH', schengen: false },
-                { city: 'Hanoi', country: 'Vietnam', code: 'VN', schengen: false },
-                { city: 'Ho Chi Minh City', country: 'Vietnam', code: 'VN', schengen: false },
-                { city: 'Bali (Denpasar)', country: 'Indonesia', code: 'ID', schengen: false },
-                { city: 'Jakarta', country: 'Indonesia', code: 'ID', schengen: false },
-                { city: 'Kuala Lumpur', country: 'Malaysia', code: 'MY', schengen: false },
-                { city: 'Manila', country: 'Philippines', code: 'PH', schengen: false },
-                { city: 'Mumbai', country: 'India', code: 'IN', schengen: false },
-                { city: 'New Delhi', country: 'India', code: 'IN', schengen: false },
-                { city: 'Dubai', country: 'United Arab Emirates', code: 'AE', schengen: false },
-                { city: 'Abu Dhabi', country: 'United Arab Emirates', code: 'AE', schengen: false },
-                { city: 'Tel Aviv', country: 'Israel', code: 'IL', schengen: false },
-                { city: 'Jerusalem', country: 'Israel', code: 'IL', schengen: false },
-                { city: 'Doha', country: 'Qatar', code: 'QA', schengen: false },
-                
-                // Ozeanien
-                { city: 'Sydney', country: 'Australia', code: 'AU', schengen: false },
-                { city: 'Melbourne', country: 'Australia', code: 'AU', schengen: false },
-                { city: 'Brisbane', country: 'Australia', code: 'AU', schengen: false },
-                { city: 'Perth', country: 'Australia', code: 'AU', schengen: false },
-                { city: 'Auckland', country: 'New Zealand', code: 'NZ', schengen: false },
-                { city: 'Wellington', country: 'New Zealand', code: 'NZ', schengen: false },
-                
-                // Südamerika
-                { city: 'Rio de Janeiro', country: 'Brazil', code: 'BR', schengen: false },
-                { city: 'São Paulo', country: 'Brazil', code: 'BR', schengen: false },
-                { city: 'Buenos Aires', country: 'Argentina', code: 'AR', schengen: false },
-                { city: 'Lima', country: 'Peru', code: 'PE', schengen: false },
-                { city: 'Bogotá', country: 'Colombia', code: 'CO', schengen: false },
-                { city: 'Santiago', country: 'Chile', code: 'CL', schengen: false },
-                
-                // Afrika
-                { city: 'Cape Town', country: 'South Africa', code: 'ZA', schengen: false },
-                { city: 'Johannesburg', country: 'South Africa', code: 'ZA', schengen: false },
-                { city: 'Cairo', country: 'Egypt', code: 'EG', schengen: false },
-                { city: 'Marrakech', country: 'Morocco', code: 'MA', schengen: false },
-                { city: 'Casablanca', country: 'Morocco', code: 'MA', schengen: false },
-                { city: 'Nairobi', country: 'Kenya', code: 'KE', schengen: false },
-                { city: 'Tunis', country: 'Tunisia', code: 'TN', schengen: false },
-                
-                // Karibik
-                { city: 'Havana', country: 'Cuba', code: 'CU', schengen: false },
-                { city: 'Santo Domingo', country: 'Dominican Republic', code: 'DO', schengen: false },
-                { city: 'Kingston', country: 'Jamaica', code: 'JM', schengen: false },
-            ];
-            
-            // Suche durchführen
-            const searchDestinations = (searchQuery) => {
-                if (!searchQuery || searchQuery.length < 2) {
-                    setSuggestions([]);
-                    return;
-                }
-                
-                const q = searchQuery.toLowerCase();
-                const results = DESTINATIONS.filter(dest => {
-                    const cityMatch = dest.city.toLowerCase().includes(q);
-                    const countryMatch = dest.country.toLowerCase().includes(q);
-                    const codeMatch = dest.code.toLowerCase() === q;
-                    return cityMatch || countryMatch || codeMatch;
-                }).slice(0, 8);
-                
-                setSuggestions(results);
-                setIsOpen(results.length > 0);
-            };
-            
-            // Debounced Search
-            useEffect(() => {
-                const timer = setTimeout(() => searchDestinations(query), 150);
-                return () => clearTimeout(timer);
-            }, [query]);
-            
-            // Selection handler
-            const handleSelect = (dest) => {
-                const formatted = `${dest.city}, ${dest.country}`;
-                setQuery(formatted);
-                setIsOpen(false);
-                onSelect({
-                    city: dest.city,
-                    country: dest.country,
-                    code: dest.code,
-                    formatted: formatted,
-                    isSchengen: dest.schengen
-                });
-            };
-            
-            // Click outside handler
-            useEffect(() => {
-                const handleClickOutside = (e) => {
-                    if (inputRef.current && !inputRef.current.contains(e.target)) {
-                        setIsOpen(false);
-                    }
-                };
-                document.addEventListener('mousedown', handleClickOutside);
-                return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, []);
-            
-            // Initialize with current value
-            useEffect(() => {
-                if (currentDestination?.formatted) {
-                    setQuery(currentDestination.formatted);
-                } else if (currentDestination?.city && currentDestination?.country) {
-                    setQuery(`${currentDestination.city}, ${currentDestination.country}`);
-                }
-            }, [currentDestination]);
-            
-            return (
-                <div className="relative" ref={inputRef}>
-                    <div className="flex items-center gap-2 text-xs font-bold text-sky-700 mb-2">
-                        <Icons.MapPin className="h-4 w-4" />
-                        Travel Destination / Reiseziel
-                    </div>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={query}
-                            onChange={(e) => {
-                                setQuery(e.target.value);
-                                setIsOpen(true);
-                            }}
-                            onFocus={() => query.length >= 2 && setIsOpen(true)}
-                            placeholder="Search city or country... (e.g. Bangkok, Thailand)"
-                            className="w-full px-4 py-3.5 pl-10 rounded-xl border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400"
-                        />
-                        <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                        {query && (
-                            <button
-                                onClick={() => {
-                                    setQuery('');
-                                    setSuggestions([]);
-                                    onSelect({ city: '', country: '', formatted: '', isSchengen: null });
-                                }}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full"
-                            >
-                                <Icons.X className="h-4 w-4 text-slate-400" />
-                            </button>
-                        )}
-                    </div>
-                    
-                    {/* Suggestions Dropdown */}
-                    {isOpen && suggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl border border-slate-200 shadow-xl max-h-64 overflow-y-auto animate-slide-down">
-                            {suggestions.map((dest, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleSelect(dest)}
-                                    className="w-full px-4 py-3 text-left hover:bg-sky-50 flex items-center justify-between border-b border-slate-100 last:border-0 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center text-xs font-bold text-sky-700">
-                                            {dest.code}
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-slate-800">{dest.city}</div>
-                                            <div className="text-xs text-slate-500">{dest.country}</div>
-                                        </div>
-                                    </div>
-                                    <div className={`text-xs px-2 py-1 rounded-full ${dest.schengen ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                        {dest.schengen ? 'Schengen' : 'Non-Schengen'}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    
-                    {/* Current Selection */}
-                    {currentDestination?.formatted && (
-                        <div className="mt-2 flex items-center gap-2">
-                            <Icons.CheckCircle className="h-4 w-4 text-emerald-500" />
-                            <span className="text-sm text-emerald-700 font-medium">{currentDestination.formatted}</span>
-                            {currentDestination.isSchengen !== null && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${currentDestination.isSchengen ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                    {currentDestination.isSchengen ? 'Schengen' : 'Non-Schengen'}
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
         // Address Autocomplete Komponente (mit Modal & Karte)
         const AddressInput = ({ value, onChange }) => {
             const [suggestions, setSuggestions] = useState([]);
@@ -1489,9 +885,11 @@
                 if (query.length < 3) { setSuggestions([]); return; }
                 setIsLoading(true);
                 try {
+                    // Verbesserte Suche: Füge "Deutschland" hinzu und erhöhe Limit
                     const searchQuery = query.includes('Deutschland') ? query : `${query}, Deutschland`;
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&addressdetails=1&limit=12&countrycodes=de`, { headers: { 'Accept-Language': 'de' } });
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&addressdetails=1&limit=12&countrycodes=de&featuretype=house`, { headers: { 'Accept-Language': 'de' } });
                     const data = await response.json();
+                    // Sortiere Ergebnisse: Adressen mit Hausnummer zuerst
                     const sorted = data.sort((a, b) => {
                         const aHasNumber = a.address?.house_number ? 1 : 0;
                         const bHasNumber = b.address?.house_number ? 1 : 0;
@@ -1524,17 +922,6 @@
                 setSuggestions([]);
             };
 
-            const useManualAddress = () => {
-                if (searchQuery.trim()) {
-                    onChange(searchQuery.trim());
-                    setIsVerified(true);
-                    setIsModalOpen(false);
-                    setSearchQuery('');
-                    setSuggestions([]);
-                    setSelectedCoords(null);
-                }
-            };
-
             const openModal = () => {
                 setIsModalOpen(true);
                 setSearchQuery(value || '');
@@ -1554,12 +941,12 @@
                     <div className="w-full">
                         <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Wohnanschrift</label>
                         <div className="relative">
-                            <input type="text" value={value} onClick={openModal} onChange={(e) => { onChange(e.target.value); setIsVerified(true); }}
-                                className={`w-full px-4 py-3.5 rounded-xl border-2 transition-all duration-300 text-slate-700 placeholder-slate-400 bg-white focus:outline-none focus:ring-4 ${isVerified && value ? 'border-emerald-400 bg-emerald-50/30 focus:ring-emerald-100' : 'border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-sky-100'}`}
-                                placeholder="Straße Nr., PLZ Ort eingeben..." />
+                            <input type="text" value={value} onClick={openModal} onChange={(e) => { onChange(e.target.value); setIsVerified(false); }}
+                                className={`w-full px-4 py-3.5 rounded-xl border-2 transition-all duration-300 text-slate-700 placeholder-slate-400 bg-white focus:outline-none focus:ring-4 cursor-pointer ${isVerified ? 'border-emerald-400 bg-emerald-50/30 focus:ring-emerald-100' : 'border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-sky-100'}`}
+                                placeholder="Klicken zum Suchen..." readOnly />
                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-2">
-                                {isVerified && value && <Icons.Check className="h-5 w-5 text-emerald-500" />}
-                                <Icons.Search className="h-5 w-5 text-slate-400 cursor-pointer" onClick={openModal} />
+                                {isVerified && <Icons.Check className="h-5 w-5 text-emerald-500" />}
+                                <Icons.Search className="h-5 w-5 text-slate-400" />
                             </div>
                         </div>
                         {isVerified && selectedCoords && (
@@ -1573,72 +960,57 @@
                             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
                                 <div className="bg-gradient-to-r from-sky-500 to-indigo-600 px-6 py-4">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-lg font-bold text-white flex items-center gap-2"><Icons.MapPin className="h-5 w-5" />Adresse eingeben</h3>
+                                        <h3 className="text-lg font-bold text-white flex items-center gap-2"><Icons.MapPin className="h-5 w-5" />Adresse suchen</h3>
                                         <button onClick={closeModal} className="text-white/80 hover:text-white transition-colors p-1">
                                             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                         </button>
                                     </div>
                                     <div className="mt-4 relative">
-                                        <input type="text" value={searchQuery} onChange={handleSearchInput} className="w-full px-5 py-4 rounded-xl border-0 text-slate-700 placeholder-slate-400 bg-white focus:outline-none focus:ring-4 focus:ring-white/30 text-lg" placeholder="Straße Hausnummer, PLZ Ort..." autoFocus />
+                                        <input type="text" value={searchQuery} onChange={handleSearchInput} className="w-full px-5 py-4 rounded-xl border-0 text-slate-700 placeholder-slate-400 bg-white focus:outline-none focus:ring-4 focus:ring-white/30 text-lg" placeholder="Straße, Hausnummer, PLZ oder Ort..." autoFocus />
                                         <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                             {isLoading ? <div className="w-6 h-6 border-2 border-slate-300 border-t-sky-500 rounded-full animate-spin" /> : <Icons.Search className="h-6 w-6 text-slate-400" />}
                                         </div>
                                     </div>
-                                    {searchQuery.length >= 3 && (
-                                        <button 
-                                            onClick={useManualAddress}
-                                            className="mt-3 w-full py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2 border border-white/30"
-                                        >
-                                            <Icons.Check className="h-5 w-5" />
-                                            Diese Adresse übernehmen
-                                        </button>
-                                    )}
                                 </div>
                                 <div className="overflow-y-auto max-h-[50vh]">
-                                    {suggestions.length > 0 && (
-                                        <>
-                                            <div className="px-6 py-2 bg-slate-50 border-b border-slate-100">
-                                                <p className="text-xs text-slate-500">Vorschläge (optional auswählen):</p>
-                                            </div>
-                                            <div className="divide-y divide-slate-100">
-                                                {suggestions.map((item, idx) => (
-                                                    <button key={idx} onClick={() => selectAddress(item)} className="w-full text-left px-6 py-4 hover:bg-sky-50 transition-colors flex items-start gap-4 group">
-                                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-100 group-hover:bg-sky-100 flex items-center justify-center transition-colors">
-                                                            <Icons.MapPin className="h-5 w-5 text-slate-500 group-hover:text-sky-600" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="font-semibold text-slate-800 group-hover:text-sky-700 transition-colors">
-                                                                {item.address?.road || item.display_name.split(',')[0]} {item.address?.house_number || ''}
-                                                                {!item.address?.house_number && <span className="text-amber-500 text-xs ml-2">(ohne Hausnr.)</span>}
+                                    {suggestions.length > 0 ? (
+                                        <div className="divide-y divide-slate-100">
+                                            {suggestions.map((item, idx) => (
+                                                <button key={idx} onClick={() => selectAddress(item)} className="w-full text-left px-6 py-4 hover:bg-sky-50 transition-colors flex items-start gap-4 group">
+                                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-100 group-hover:bg-sky-100 flex items-center justify-center transition-colors">
+                                                        <Icons.MapPin className="h-5 w-5 text-slate-500 group-hover:text-sky-600" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-semibold text-slate-800 group-hover:text-sky-700 transition-colors">{item.display_name.split(',')[0]}</div>
+                                                        <div className="text-sm text-slate-500 mt-0.5 line-clamp-2">{item.display_name}</div>
+                                                        {item.address && (
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {item.address.postcode && <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{item.address.postcode}</span>}
+                                                                {(item.address.city || item.address.town || item.address.village) && <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{item.address.city || item.address.town || item.address.village}</span>}
                                                             </div>
-                                                            <div className="text-sm text-slate-500 mt-0.5">
-                                                                {item.address?.postcode} {item.address?.city || item.address?.town || item.address?.village}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Check className="h-5 w-5 text-sky-600" /></div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </>
-                                    )}
-                                    {searchQuery.length >= 3 && suggestions.length === 0 && !isLoading && (
-                                        <div className="px-6 py-8 text-center">
-                                            <Icons.MapPin className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                                            <p className="text-slate-500">Keine Vorschläge gefunden</p>
-                                            <p className="text-sm text-slate-400 mt-1">Klicken Sie oben auf "Diese Adresse übernehmen"</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"><Icons.Check className="h-5 w-5 text-sky-600" /></div>
+                                                </button>
+                                            ))}
                                         </div>
-                                    )}
-                                    {searchQuery.length < 3 && (
+                                    ) : searchQuery.length >= 3 && !isLoading ? (
                                         <div className="px-6 py-12 text-center">
-                                            <Icons.Edit className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                                            <p className="text-slate-500 font-medium">Geben Sie Ihre vollständige Adresse ein</p>
-                                            <p className="text-sm text-slate-400 mt-1">z.B. "Musterstraße 123, 12345 Hamburg"</p>
+                                            <Icons.MapPin className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                            <p className="text-slate-500">Keine Adressen gefunden</p>
+                                            <p className="text-sm text-slate-400 mt-1">Versuchen Sie eine andere Schreibweise</p>
                                         </div>
-                                    )}
+                                    ) : searchQuery.length < 3 ? (
+                                        <div className="px-6 py-12 text-center">
+                                            <Icons.Search className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                            <p className="text-slate-500">Mindestens 3 Zeichen eingeben</p>
+                                            <p className="text-sm text-slate-400 mt-1">z.B. "Dammtorwall 7a, Hamburg"</p>
+                                        </div>
+                                    ) : null}
                                 </div>
                                 <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                                    <span className="text-[10px] text-slate-400">Tipp: Sie können jede Adresse manuell eingeben</span>
-                                    <button onClick={closeModal} className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors">Schließen</button>
+                                    <span className="text-[10px] text-slate-400">Powered by OpenStreetMap</span>
+                                    <button onClick={closeModal} className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors">Abbrechen</button>
                                 </div>
                             </div>
                         </div>
@@ -1824,138 +1196,19 @@
         };
 
         // =====================================================
-        // VORSCHAU MODAL KOMPONENTE
-        // =====================================================
-        const PreviewModal = ({ isOpen, onClose, pdfUrl, onConfirm, price }) => {
-            const [isLoading, setIsLoading] = useState(true);
-            
-            if (!isOpen) return null;
-            
-            // Verhindere Rechtsklick
-            const handleContextMenu = (e) => {
-                e.preventDefault();
-                return false;
-            };
-            
-            // Verhindere Keyboard Shortcuts
-            const handleKeyDown = (e) => {
-                if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.key === 'p' || e.key === 'P')) {
-                    e.preventDefault();
-                    return false;
-                }
-            };
-            
-            React.useEffect(() => {
-                document.addEventListener('keydown', handleKeyDown);
-                return () => document.removeEventListener('keydown', handleKeyDown);
-            }, []);
-            
-            return (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm animate-fade-in" onContextMenu={handleContextMenu}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] mx-4 overflow-hidden flex flex-col animate-slide-up">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-sky-600 to-indigo-700 px-6 py-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Icons.Eye className="h-6 w-6 text-white" />
-                                <div>
-                                    <h2 className="text-lg font-bold text-white">Dokumentenvorschau</h2>
-                                    <p className="text-sky-100 text-xs">Bitte prüfen Sie alle Angaben vor dem Kauf</p>
-                                </div>
-                            </div>
-                            <button onClick={onClose} className="text-white/80 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors">
-                                <Icons.X className="h-6 w-6" />
-                            </button>
-                        </div>
-                        
-                        {/* Watermark Overlay */}
-                        <div className="relative flex-1 overflow-hidden bg-slate-100" style={{ minHeight: '60vh' }}>
-                            {/* PDF Anzeige */}
-                            {isLoading && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                                    <div className="text-center">
-                                        <div className="w-12 h-12 border-4 border-slate-300 border-t-sky-500 rounded-full animate-spin mx-auto mb-4" />
-                                        <p className="text-slate-500">Vorschau wird geladen...</p>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            <iframe 
-                                src={pdfUrl + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH'} 
-                                className="w-full h-full border-0"
-                                style={{ minHeight: '60vh' }}
-                                onLoad={() => setIsLoading(false)}
-                                onContextMenu={handleContextMenu}
-                            />
-                            
-                            {/* Wasserzeichen Overlay */}
-                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden select-none" style={{ userSelect: 'none' }}>
-                                <div className="transform -rotate-45 text-center">
-                                    <div className="text-6xl font-black text-slate-400/20 tracking-widest">VORSCHAU</div>
-                                    <div className="text-2xl font-bold text-slate-400/15 mt-2">NICHT GÜLTIG</div>
-                                </div>
-                            </div>
-                            
-                            {/* Wiederholtes Wasserzeichen */}
-                            <div className="absolute inset-0 pointer-events-none select-none" style={{ userSelect: 'none' }}>
-                                {[...Array(6)].map((_, i) => (
-                                    <div key={i} className="absolute transform -rotate-45 text-slate-400/10 font-bold text-xl"
-                                        style={{ 
-                                            top: `${15 + i * 20}%`, 
-                                            left: `${-10 + (i % 2) * 50}%`,
-                                            width: '200%'
-                                        }}>
-                                        VORSCHAU • PREVIEW • VORSCHAU • PREVIEW • VORSCHAU • PREVIEW
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        {/* Hinweis */}
-                        <div className="bg-amber-50 border-t border-amber-200 px-6 py-3">
-                            <div className="flex items-center gap-2 text-amber-700 text-sm">
-                                <Icons.AlertCircle className="h-4 w-4 flex-shrink-0" />
-                                <span>Dies ist eine Vorschau. Das finale Dokument wird nach der Zahlung ohne Wasserzeichen erstellt.</span>
-                            </div>
-                        </div>
-                        
-                        {/* Footer mit Buttons */}
-                        <div className="bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
-                            <button 
-                                onClick={onClose}
-                                className="px-6 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors"
-                            >
-                                ← Zurück bearbeiten
-                            </button>
-                            
-                            <button 
-                                onClick={onConfirm}
-                                className="px-8 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-3"
-                            >
-                                <Icons.Check className="h-5 w-5" />
-                                Alles korrekt - Jetzt kaufen ({price})
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // =====================================================
         // HAUPTKOMPONENTE
         // =====================================================
         function BtmTravelApp() {
             const [formData, setFormData] = useState({
                 selectedDoctorId: '', patName: '', patFirstName: '', patDob: '', patPob: '', patAddress: '', patPassport: '', patNationality: 'Deutsch', patSex: '',
                 medTradeName: '', medDosageForm: 'Hartkapseln', medSubstance: '', medConcentration: 0, medDailyCount: 0, medInstructions: '', doseMorning: 0, doseNoon: 0, doseEvening: 0,
-                travelStartDate: '', travelDuration: 0, countryType: 'schengen', destination: '', destinationCity: '',
+                travelStartDate: '', travelDuration: 0, countryType: 'schengen', destination: '',
                 healthAuthorityName: '', healthAuthorityAddress: '', healthAuthorityPhone: '', healthAuthorityEmail: '', healthAuthorityFax: ''
             });
 
             const [loading, setLoading] = useState(false);
             const [success, setSuccess] = useState(false);
             const [showPaymentModal, setShowPaymentModal] = useState(false);
-            const [showPreviewModal, setShowPreviewModal] = useState(false);
-            const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
             const [pendingProduct, setPendingProduct] = useState(null);
             const [logo, setLogo] = useState(null);
             const [logoScale, setLogoScale] = useState(100);
@@ -1998,8 +1251,6 @@
             const totalUnits = formData.medDailyCount * formData.travelDuration;
             const totalSubstance = totalUnits * formData.medConcentration;
             const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
-            // Gültigkeitsdauer: 30 Tage für Schengen, Reisedauer für Nicht-Schengen
-            const validityEndDate = calculateEndDate(formData.travelStartDate, Math.min(formData.travelDuration, 30));
             const selectedDoctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
             const currentDocAssets = selectedDoctor ? doctorAssets[selectedDoctor.id] : null;
             
@@ -2021,7 +1272,7 @@
                 if (!formData.medConcentration || formData.medConcentration <= 0) errors.push({ field: 'Konzentration', message: 'Bitte geben Sie die Konzentration ein' });
                 if (!formData.travelStartDate) errors.push({ field: 'Reisedatum', message: 'Bitte wählen Sie ein Reisedatum' });
                 if (!formData.travelDuration || formData.travelDuration <= 0) errors.push({ field: 'Reisedauer', message: 'Bitte geben Sie die Reisedauer ein' });
-                if (formData.doseMorning + formData.doseNoon + formData.doseEvening <= 0) errors.push({ field: 'Dosierung', message: 'Bitte geben Sie mindestens eine Dosis ein' });
+                if ((formData.doseMorning || 0) + (formData.doseNoon || 0) + (formData.doseEvening || 0) <= 0) errors.push({ field: 'Dosierung', message: 'Bitte geben Sie mindestens eine Dosis ein' });
                 return errors;
             };
             
@@ -2123,26 +1374,6 @@
                                 // Verifiziere die Zahlung serverseitig
                                 const verifyAndGeneratePDF = async () => {
                                     setLoading(true);
-                                    
-                                    // WICHTIG: Warte auf Assets von Server
-                                    let loadedAssets = {};
-                                    try {
-                                        const assetsResponse = await fetch('/assets-config.json');
-                                        if (assetsResponse.ok) {
-                                            const assetsConfig = await assetsResponse.json();
-                                            if (assetsConfig.doctorAssets) {
-                                                loadedAssets = assetsConfig.doctorAssets;
-                                                setDoctorAssets(assetsConfig.doctorAssets);
-                                                console.log('✅ Assets für PDF geladen:', Object.keys(loadedAssets));
-                                            }
-                                            if (assetsConfig.logo) {
-                                                setLogo(assetsConfig.logo);
-                                            }
-                                        }
-                                    } catch (assetErr) {
-                                        console.log('⚠️ Assets konnten nicht geladen werden:', assetErr);
-                                    }
-                                    
                                     try {
                                         const response = await fetch('/api/stripe/verify-session', {
                                             method: 'POST',
@@ -2169,13 +1400,12 @@
                                             sessionStorage.setItem('payment_verified', 'true');
                                             setSuccess(true);
                                             
-                                            // PDF generieren mit Assets (kleine Verzögerung für State-Update)
+                                            // PDF DIREKT generieren mit gespeicherten Daten
                                             setTimeout(() => {
                                                 console.log('📄 Generating PDF after verified payment...');
                                                 console.log('📋 Using saved form data:', savedFormData);
-                                                console.log('🖊️ Using doctor assets:', Object.keys(loadedAssets));
                                                 generatePDF('bundle', savedFormData);
-                                            }, 500);
+                                            }, 800);
                                         } else {
                                             console.error('❌ Zahlung nicht verifiziert:', result.error);
                                             alert('Die Zahlung konnte nicht verifiziert werden. Bitte kontaktieren Sie uns unter info@nevpaz.de');
@@ -2314,171 +1544,10 @@
                 if (pendingPdfGeneration) { generatePDF(pendingPdfGeneration.type, pendingPdfGeneration.paymentDetails); setPendingPdfGeneration(null); }
             };
             
-            // Generiere Vorschau-PDF (mit Wasserzeichen)
-            const generatePreviewPDF = async () => {
-                setLoading(true);
-                
-                try {
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
-                    const pageWidth = doc.internal.pageSize.getWidth();
-                    const pageHeight = doc.internal.pageSize.getHeight();
-                    const margin = 15;
-                    const contentWidth = pageWidth - margin * 2;
-                    
-                    // Farben
-                    const navy = [15, 35, 70];
-                    const gold = [180, 142, 87];
-                    const silver = [148, 163, 184];
-                    const charcoal = [30, 41, 59];
-                    
-                    // Header
-                    doc.setFillColor(...navy);
-                    doc.rect(0, 0, pageWidth, 25, 'F');
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(16);
-                    doc.setTextColor(255, 255, 255);
-                    doc.text('VORSCHAU - PREVIEW', pageWidth / 2, 12, { align: 'center' });
-                    doc.setFontSize(9);
-                    doc.setTextColor(...gold);
-                    doc.text('Bitte prüfen Sie alle Angaben vor dem Kauf', pageWidth / 2, 19, { align: 'center' });
-                    
-                    let y = 35;
-                    
-                    // Patientendaten
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(...navy);
-                    doc.text('Patientendaten', margin, y);
-                    y += 8;
-                    
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(10);
-                    doc.setTextColor(...charcoal);
-                    doc.text(`Name: ${formData.patName}, ${formData.patFirstName}`, margin, y); y += 6;
-                    doc.text(`Geburtsdatum: ${formData.patDob}`, margin, y); y += 6;
-                    doc.text(`Geburtsort: ${formData.patPob}`, margin, y); y += 6;
-                    doc.text(`Pass/Ausweis-Nr.: ${formData.patPassport}`, margin, y); y += 6;
-                    doc.text(`Staatsangehörigkeit: ${formData.patNationality}`, margin, y); y += 6;
-                    const sexText = formData.patSex === 'M' ? 'Männlich' : formData.patSex === 'F' ? 'Weiblich' : formData.patSex;
-                    doc.text(`Geschlecht: ${sexText}`, margin, y); y += 6;
-                    doc.text(`Wohnanschrift: ${formData.patAddress}`, margin, y); y += 12;
-                    
-                    // Reisedaten
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(...navy);
-                    doc.text('Reisedaten', margin, y);
-                    y += 8;
-                    
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(10);
-                    doc.setTextColor(...charcoal);
-                    doc.text(`Reiseziel: ${formData.destination}`, margin, y); y += 6;
-                    doc.text(`Reisebeginn: ${formData.travelStartDate}`, margin, y); y += 6;
-                    doc.text(`Reisedauer: ${formData.travelDuration} Tage`, margin, y); y += 6;
-                    doc.text(`Reiseende: ${endDate}`, margin, y); y += 12;
-                    
-                    // Medikamentendaten
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(...navy);
-                    doc.text('Medikamentendaten', margin, y);
-                    y += 8;
-                    
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(10);
-                    doc.setTextColor(...charcoal);
-                    doc.text(`Handelsname: ${formData.medTradeName}`, margin, y); y += 6;
-                    doc.text(`Wirkstoff: ${formData.medSubstance}`, margin, y); y += 6;
-                    doc.text(`Konzentration: ${formData.medConcentration} mg`, margin, y); y += 6;
-                    doc.text(`Darreichungsform: ${formData.medDosageForm}`, margin, y); y += 6;
-                    doc.text(`Dosierung: ${formData.medInstructions}`, margin, y); y += 6;
-                    doc.text(`Gesamtmenge: ${totalSubstance} mg ${formData.medSubstance}`, margin, y); y += 12;
-                    
-                    // Arzt
-                    const doctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(...navy);
-                    doc.text('Ausstellender Arzt', margin, y);
-                    y += 8;
-                    
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(10);
-                    doc.setTextColor(...charcoal);
-                    doc.text(`${doctor?.name || '—'}`, margin, y); y += 6;
-                    doc.text(`${doctor?.specialty || '—'}`, margin, y); y += 12;
-                    
-                    // Behörde
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(12);
-                    doc.setTextColor(...navy);
-                    doc.text('Zuständige Behörde', margin, y);
-                    y += 8;
-                    
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(10);
-                    doc.setTextColor(...charcoal);
-                    doc.text(`${formData.healthAuthorityName || '—'}`, margin, y); y += 6;
-                    doc.text(`${formData.healthAuthorityAddress || '—'}`, margin, y); y += 15;
-                    
-                    // Wasserzeichen
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(60);
-                    doc.setTextColor(200, 200, 200);
-                    doc.text('VORSCHAU', pageWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
-                    
-                    // Hinweisbox
-                    doc.setFillColor(255, 250, 240);
-                    doc.setDrawColor(...gold);
-                    doc.setLineWidth(0.5);
-                    doc.roundedRect(margin, y, contentWidth, 25, 2, 2, 'FD');
-                    
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(9);
-                    doc.setTextColor(...navy);
-                    doc.text('WICHTIG:', margin + 5, y + 8);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(...charcoal);
-                    doc.text('Dies ist eine Vorschau. Das finale Dokument enthält alle offiziellen Elemente', margin + 5, y + 14);
-                    doc.text('(Unterschrift, Stempel, QR-Code) und wird nach der Zahlung generiert.', margin + 5, y + 19);
-                    
-                    // Footer
-                    doc.setFillColor(...navy);
-                    doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(255, 255, 255);
-                    doc.text('Privatpraxis NEVPAZ GmbH • Dammtorwall 7a • 20354 Hamburg • www.nevpaz.de', pageWidth / 2, pageHeight - 6, { align: 'center' });
-                    
-                    // PDF als Blob URL
-                    const pdfBlob = doc.output('blob');
-                    const pdfUrl = URL.createObjectURL(pdfBlob);
-                    
-                    setPreviewPdfUrl(pdfUrl);
-                    setShowPreviewModal(true);
-                    
-                } catch (error) {
-                    console.error('Vorschau-Fehler:', error);
-                    alert('Fehler bei der Vorschau-Generierung');
-                }
-                
-                setLoading(false);
-            };
-            
             const initiatePurchase = () => { 
                 // Prüfen ob alle Felder ausgefüllt sind
                 if (!isFormValid) {
                     setShowValidationErrors(true);
-                    // Scroll zum ersten Fehler
-                    setTimeout(() => {
-                        const errorElement = document.querySelector('.validation-error-highlight');
-                        if (errorElement) {
-                            errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }, 100);
                     return;
                 }
                 
@@ -2495,17 +1564,6 @@
                     return;
                 }
                 
-                // Vorschau generieren und anzeigen
-                generatePreviewPDF();
-            };
-            
-            // Nach Vorschau-Bestätigung zum Bezahlen
-            const confirmPreviewAndPay = () => {
-                setShowPreviewModal(false);
-                if (previewPdfUrl) {
-                    URL.revokeObjectURL(previewPdfUrl);
-                    setPreviewPdfUrl(null);
-                }
                 setPendingProduct('bundle'); 
                 setShowPaymentModal(true); 
             };
@@ -2535,23 +1593,12 @@
                 const docAssets = doctorAssets[doctor.id] || { signature: null, stamp: null, letterhead: null };
                 setLoading(true);
                 
-                // Übersetzung Darreichungsform (Hartkapseln → Extended Release)
-                const translateDosageForm = (form) => {
-                    if (!form) return '';
-                    const lower = form.toLowerCase();
-                    if (lower.includes('hartkapseln') || lower.includes('hartkapsel') || lower.includes('hard capsule')) {
-                        return 'Hard capsules / Hartkapseln';
-                    }
-                    return form;
-                };
-                
                 // QR-Code Generator Funktion
                 const generateQRCodeDataURL = (text) => {
                     return new Promise((resolve) => {
                         const tempDiv = document.createElement('div');
                         tempDiv.style.position = 'absolute';
                         tempDiv.style.left = '-9999px';
-                        tempDiv.style.top = '-9999px';
                         document.body.appendChild(tempDiv);
                         
                         try {
@@ -2564,36 +1611,18 @@
                                 correctLevel: QRCode.CorrectLevel.M
                             });
                             
-                            // Längere Wartezeit für QR-Code Rendering
                             setTimeout(() => {
-                                try {
-                                    const canvas = tempDiv.querySelector('canvas');
-                                    if (canvas) {
-                                        const dataUrl = canvas.toDataURL('image/png');
-                                        resolve(dataUrl);
-                                    } else {
-                                        // Versuche img Tag als Fallback
-                                        const img = tempDiv.querySelector('img');
-                                        if (img && img.src) {
-                                            resolve(img.src);
-                                        } else {
-                                            console.warn('QR Code: Kein Canvas oder Image gefunden');
-                                            resolve(null);
-                                        }
-                                    }
-                                } catch (e) {
-                                    console.error('QR Code extraction failed:', e);
+                                const canvas = tempDiv.querySelector('canvas');
+                                if (canvas) {
+                                    resolve(canvas.toDataURL('image/png'));
+                                } else {
                                     resolve(null);
                                 }
-                                if (document.body.contains(tempDiv)) {
-                                    document.body.removeChild(tempDiv);
-                                }
-                            }, 300); // Erhöht von 100ms auf 300ms
+                                document.body.removeChild(tempDiv);
+                            }, 100);
                         } catch (e) {
                             console.error('QR Code generation failed:', e);
-                            if (document.body.contains(tempDiv)) {
-                                document.body.removeChild(tempDiv);
-                            }
+                            document.body.removeChild(tempDiv);
                             resolve(null);
                         }
                     });
@@ -2603,15 +1632,18 @@
                     // Verwende activeFormData für alle Referenzen in dieser Funktion
                     const formData = activeFormData;
                     
-                    // Berechnete Werte für diese Funktion
-                    const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
-                    const validityEndDate = calculateEndDate(formData.travelStartDate, Math.min(formData.travelDuration, 30));
-                    
                     try {
                         const { jsPDF } = window.jspdf;
                         
-                        // PDF erstellen (ohne Verschlüsselung für zuverlässigen Download)
-                        const doc = new jsPDF();
+                        // PDF mit Sicherheitseinschränkungen erstellen
+                        const doc = new jsPDF({
+                            encryption: {
+                                userPassword: '', // Kein Passwort zum Öffnen
+                                ownerPassword: 'NEVPAZ_DOC_2024_SECURE', // Passwort für Berechtigungen
+                                userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
+                                // Verboten: 'copy', 'modify', 'modify-annotations', 'fill-forms', 'extract', 'assemble'
+                            }
+                        });
                         const pageWidth = doc.internal.pageSize.getWidth();
                         const pageHeight = doc.internal.pageSize.getHeight();
                         doc.setFont('helvetica');
@@ -3041,85 +2073,67 @@
                             
                             // Content Box
                             doc.setFillColor(...lightBlue);
-                            doc.rect(margin, y, contentWidth, 50, 'F');
+                            doc.rect(margin, y, contentWidth, 38, 'F');
                             doc.setDrawColor(...navy);
                             doc.setLineWidth(0.3);
-                            doc.rect(margin, y, contentWidth, 50, 'S');
+                            doc.rect(margin, y, contentWidth, 38, 'S');
                             
                             // Trennlinien (Grau)
                             doc.setDrawColor(...silver);
                             doc.setLineWidth(0.4);
-                            doc.line(margin + contentWidth / 2, y + 4, margin + contentWidth / 2, y + 46);
+                            doc.line(margin + contentWidth / 2, y + 4, margin + contentWidth / 2, y + 34);
                             doc.line(margin + 4, y + 14, margin + contentWidth - 4, y + 14);
                             doc.line(margin + 4, y + 26, margin + contentWidth - 4, y + 26);
-                            doc.line(margin + 4, y + 38, margin + contentWidth - 4, y + 38);
                             
                             drawField('Surname', 'Nachname', formData.patName || '—', col1, y + 4);
                             drawField('First Name', 'Vorname', formData.patFirstName || '—', col2, y + 4);
                             drawField('Date of Birth', 'Geburtsdatum', formData.patDob || '—', col1, y + 17);
                             drawField('Passport / ID', 'Pass/Ausweis-Nr.', formData.patPassport || '—', col2, y + 17);
                             drawField('Nationality', 'Staatsangehörigkeit', formData.patNationality || 'German', col1, y + 29);
-                            const sexDisplayAttest = formData.patSex === 'M' ? 'Male / Männlich' : formData.patSex === 'F' ? 'Female / Weiblich' : formData.patSex;
-                            drawField('Sex', 'Geschlecht', sexDisplayAttest || '—', col2, y + 29);
-                            drawField('Address', 'Wohnanschrift', formData.patAddress || '—', col1, y + 41);
+                            drawField('Address', 'Wohnanschrift', formData.patAddress || '—', col2, y + 29);
                             
-                            y += 54;
+                            y += 42;
                             
                             // ===== REISEDAUER-BOX =====
-                            doc.setFillColor(...lightBlue);
+                            doc.setFillColor(...white);
                             doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
                             doc.setDrawColor(...navy);
                             doc.setLineWidth(0.5);
                             doc.roundedRect(margin, y, contentWidth, 20, 2, 2, 'S');
                             
-                            // Trennlinien für 3 Spalten
+                            // Graue Trennlinie in der Mitte
                             doc.setDrawColor(...silver);
-                            doc.setLineWidth(0.6);
-                            doc.line(margin + contentWidth / 3, y + 3, margin + contentWidth / 3, y + 17);
-                            doc.line(margin + contentWidth * 2 / 3, y + 3, margin + contentWidth * 2 / 3, y + 17);
+                            doc.setLineWidth(0.8);
+                            doc.line(margin + contentWidth / 2, y + 3, margin + contentWidth / 2, y + 17);
                             
-                            // Spalte 1: Reiseziel
+                            // Travel Duration
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(6);
+                            doc.setFontSize(7);
                             doc.setTextColor(...navy);
-                            doc.text('DESTINATION', margin + contentWidth / 6, y + 5, { align: 'center' });
+                            doc.text('TRAVEL DURATION', margin + contentWidth / 4, y + 6, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Reiseziel', margin + contentWidth / 6, y + 9, { align: 'center' });
+                            doc.text('Reisedauer', margin + contentWidth / 4, y + 10, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(10);
+                            doc.setFontSize(13);
                             doc.setTextColor(...charcoal);
-                            doc.text(formData.destination || '—', margin + contentWidth / 6, y + 16, { align: 'center' });
+                            doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth / 4, y + 17, { align: 'center' });
                             
-                            // Spalte 2: Reisedauer
+                            // Validity Period
                             const today = new Date().toISOString().split('T')[0];
                             doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(6);
+                            doc.setFontSize(7);
                             doc.setTextColor(...navy);
-                            doc.text('TRAVEL PERIOD', margin + contentWidth / 2, y + 5, { align: 'center' });
+                            doc.text('VALIDITY PERIOD', margin + contentWidth * 3 / 4, y + 6, { align: 'center' });
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(5);
                             doc.setTextColor(...silver);
-                            doc.text('Reisedauer', margin + contentWidth / 2, y + 9, { align: 'center' });
+                            doc.text('Gültigkeitszeitraum', margin + contentWidth * 3 / 4, y + 10, { align: 'center' });
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(9);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today} - ${endDate} (${formData.travelDuration} Tage)`, margin + contentWidth / 2, y + 16, { align: 'center' });
-                            
-                            // Spalte 3: Gültigkeit
-                            doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(6);
-                            doc.setTextColor(...navy);
-                            doc.text('VALIDITY', margin + contentWidth * 5 / 6, y + 5, { align: 'center' });
-                            doc.setFont('helvetica', 'italic');
-                            doc.setFontSize(5);
-                            doc.setTextColor(...silver);
-                            doc.text('Gültigkeit', margin + contentWidth * 5 / 6, y + 9, { align: 'center' });
-                            doc.setFont('helvetica', 'bold');
-                            doc.setFontSize(9);
-                            doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today} - ${validityEndDate}`, margin + contentWidth * 5 / 6, y + 16, { align: 'center' });
+                            doc.text(`${formData.travelStartDate || today} - ${endDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
                             
                             y += 24;
                             
@@ -3150,7 +2164,7 @@
                             doc.line(margin + 4, y + 14, margin + contentWidth - 4, y + 14);
                             
                             drawField('Trade Name', 'Handelsname', formData.medTradeName || '—', col1, y + 4);
-                            drawField('Dosage Form', 'Darreichungsform', translateDosageForm(formData.medDosageForm) || '—', col2, y + 4);
+                            drawField('Dosage Form', 'Darreichungsform', formData.medDosageForm || '—', col2, y + 4);
                             drawField('Active Substance', 'Wirkstoff', formData.medSubstance || '—', col1, y + 17);
                             drawField('Concentration', 'Konzentration', `${formData.medConcentration || '—'} mg`, col2, y + 17);
                             
@@ -3216,6 +2230,11 @@
                             doc.setTextColor(...charcoal);
                             doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
                             
+                            doc.setFont('helvetica', 'italic');
+                            doc.setFontSize(8);
+                            doc.setTextColor(...silver);
+                            doc.text('(Continued on page 2 / Fortsetzung auf Seite 2)', pageWidth / 2, pageHeight - 24, { align: 'center' });
+                            
                             drawProfessionalFooter(1);
                             
                             // ===== SEITE 2 =====
@@ -3271,8 +2290,14 @@
                             // Attest PDF wird später zusammen mit BTM-Formular per Email gesendet
                             
                             // ========== NEUES DOKUMENT FÜR BTM-FORMULAR ==========
-                            // PDF erstellen (ohne Verschlüsselung für zuverlässigen Download)
-                            const btmDoc = new jsPDF();
+                            // Mit Sicherheitseinschränkungen erstellen
+                            const btmDoc = new jsPDF({
+                                encryption: {
+                                    userPassword: '', // Kein Passwort zum Öffnen
+                                    ownerPassword: 'NEVPAZ_BTM_2024_SECURE', // Passwort für Berechtigungen
+                                    userPermissions: ['print', 'print-highres'] // Nur Drucken erlaubt
+                                }
+                            });
                             btmDoc.setFont('helvetica');
                             
                             // Helper für Bilder im BTM-Dokument
@@ -3351,45 +2376,48 @@
                                     btmDoc.rect(0, 4, pageWidth, 2, 'F');
                                     btmDoc.setFillColor(...gold);
                                     btmDoc.rect(0, 6, pageWidth, 0.8, 'F');
-                                    
-                                    // Logo links oben (wie Non-Schengen)
-                                    if (logo) {
-                                        const logoWidth = 28;
-                                        const logoHeight = 28;
-                                        tryAddImageBtm(logo, margin, 10, logoWidth, logoHeight);
-                                    }
-                                    
-                                    // Praxis-Info (mit Offset für Logo)
-                                    const textStartX = logo ? margin + 32 : margin;
+                                    btmDoc.setFillColor(...lightBlue);
+                                    btmDoc.rect(0, 6.8, pageWidth, 32, 'F');
                                     btmDoc.setFont('helvetica', 'bold');
                                     btmDoc.setFontSize(13);
                                     btmDoc.setTextColor(...navy);
-                                    btmDoc.text('PRIVATPRAXIS NEVPAZ', textStartX, 17);
+                                    btmDoc.text('PRIVATPRAXIS NEVPAZ', margin, 17);
+                                    
+                                    // QR-Code im Header (oben rechts) - Dezent und professionell
+                                    if (btmQrCodeDataURL) {
+                                        const hdrQrX = pageWidth - margin - 22;
+                                        const hdrQrY = 10;
+                                        const hdrQrSize = 22;
+                                        // Subtiler Schatten
+                                        btmDoc.setFillColor(215, 222, 232);
+                                        btmDoc.roundedRect(hdrQrX + 0.8, hdrQrY + 0.8, hdrQrSize, hdrQrSize, 1.5, 1.5, 'F');
+                                        // Weißer Hintergrund
+                                        btmDoc.setFillColor(255, 255, 255);
+                                        btmDoc.roundedRect(hdrQrX, hdrQrY, hdrQrSize, hdrQrSize, 1.5, 1.5, 'F');
+                                        // Feiner Navy Rahmen
+                                        btmDoc.setDrawColor(...navy);
+                                        btmDoc.setLineWidth(0.6);
+                                        btmDoc.roundedRect(hdrQrX, hdrQrY, hdrQrSize, hdrQrSize, 1.5, 1.5, 'S');
+                                        // Gold-Akzent (dezenter)
+                                        btmDoc.setFillColor(...gold);
+                                        btmDoc.rect(hdrQrX + 2, hdrQrY + 1, hdrQrSize - 4, 0.6, 'F');
+                                        // QR-Code
+                                        tryAddImageBtm(btmQrCodeDataURL, hdrQrX + 2, hdrQrY + 2.5, hdrQrSize - 4, hdrQrSize - 4);
+                                    }
                                     btmDoc.setFont('helvetica', 'normal');
                                     btmDoc.setFontSize(8);
                                     btmDoc.setTextColor(...textGray);
-                                    btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', textStartX, 23);
+                                    btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', margin, 23);
                                     btmDoc.setFontSize(7);
                                     btmDoc.setTextColor(...silver);
-                                    btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', textStartX, 29);
-                                    btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', textStartX, 34);
-                                    
-                                    // Document Info Box (rechts oben) - wie Non-Schengen
-                                    const infoBoxX = pageWidth - margin - 40;
-                                    btmDoc.setFillColor(...lightBlue);
-                                    btmDoc.roundedRect(infoBoxX, 10, 40, 28, 2, 2, 'F');
-                                    btmDoc.setDrawColor(...navy);
-                                    btmDoc.setLineWidth(0.3);
-                                    btmDoc.roundedRect(infoBoxX, 10, 40, 28, 2, 2, 'S');
-                                    btmDoc.setFont('helvetica', 'bold');
+                                    btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', margin, 29);
+                                    btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', margin, 34);
+                                    // BfArM Hinweise links vom QR-Code
+                                    const bfarmX = pageWidth - margin - 28;
+                                    btmDoc.text('BfArM 017 (12.2000)', bfarmX, 16, { align: 'right' });
+                                    btmDoc.text('Artikel 75 SDÜ', bfarmX, 21, { align: 'right' });
                                     btmDoc.setFontSize(6);
-                                    btmDoc.setTextColor(...navy);
-                                    btmDoc.text('BfArM 017 (12.2000)', infoBoxX + 20, 16, { align: 'center' });
-                                    btmDoc.text('Artikel 75 SDÜ', infoBoxX + 20, 21, { align: 'center' });
-                                    btmDoc.setFontSize(5);
-                                    btmDoc.setTextColor(...silver);
-                                    btmDoc.text(`Dok-Nr: ${btmDocId}`, infoBoxX + 20, 27, { align: 'center' });
-                                    btmDoc.text(`${btmIssuedDate}`, infoBoxX + 20, 32, { align: 'center' });
+                                    btmDoc.text(`Dok-Nr: ${btmDocId}`, bfarmX, 26, { align: 'right' });
                                 };
                                 
                                 const drawPremiumSection = (letter, titleDE, titleEN, yPos) => {
@@ -3603,70 +2631,62 @@
                                 drawPremiumField('Geschlecht', 'Sex', sexDisplay, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
-                                drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 80, y);
+                                drawPremiumField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 50, y);
                                 
-                                // Reisedauer Box - Kompaktes einheitliches Design
+                                // Reisedauer Box - Dezentes Design
                                 y += 14;
                                 // Hauptbox mit lightBlue Hintergrund
                                 btmDoc.setFillColor(...lightBlue);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
-                                // Navy Rahmen
+                                // Navy Rahmen (dezenter)
                                 btmDoc.setDrawColor(...navy);
                                 btmDoc.setLineWidth(0.5);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
-                                // Gold-Akzent oben
+                                // Gold-Akzent oben (dezenter)
                                 btmDoc.setFillColor(...gold);
                                 btmDoc.rect(margin + 3, y + 1, contentWidth - 6, 0.6, 'F');
-                                // Trennlinien für 3 Spalten
+                                // Trennlinie
                                 btmDoc.setDrawColor(...gold);
                                 btmDoc.setLineWidth(0.4);
-                                btmDoc.line(margin + 55, y + 3.5, margin + 55, y + 12.5);
-                                btmDoc.line(margin + 115, y + 3.5, margin + 115, y + 12.5);
-                                // Spalte 1: Reiseziel
+                                btmDoc.line(margin + 85, y + 3.5, margin + 85, y + 12.5);
+                                // Felder
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEZIEL', margin + 5, y + 5.5);
+                                btmDoc.text('REISEDAUER', margin + 8, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
                                 btmDoc.setFontSize(5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Destination', margin + 5, y + 8.5);
+                                btmDoc.text('Travel Duration', margin + 8, y + 8.5);
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(9);
+                                btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(formData.destination || '—', margin + 5, y + 13.5);
-                                // Spalte 2: Reisedauer
+                                btmDoc.text(`${formData.travelDuration} Tage / Days`, margin + 8, y + 13.5);
+                                // Gültigkeitszeitraum
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEDAUER', margin + 60, y + 5.5);
+                                btmDoc.text('GÜLTIGKEITSZEITRAUM', margin + 90, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
                                 btmDoc.setFontSize(5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Travel Period', margin + 60, y + 8.5);
+                                btmDoc.text('Validity Period', margin + 90, y + 8.5);
                                 btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(10);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text(`${formData.travelStartDate}`, margin + 90, y + 13.5);
                                 btmDoc.setFontSize(9);
+                                btmDoc.setTextColor(...gold);
+                                btmDoc.text(' - ', margin + 120, y + 13.5);
+                                btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate} - ${endDate} (${formData.travelDuration} Tage)`, margin + 60, y + 13.5);
-                                // Spalte 3: Gültigkeit
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('GÜLTIGKEIT', margin + 120, y + 5.5);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Validity', margin + 120, y + 8.5);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(9);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate} - ${validityEndDate}`, margin + 120, y + 13.5);
+                                btmDoc.text(`${endDate}`, margin + 127, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
                                 y = drawPremiumSection('C', 'Verschriebenes Arzneimittel', 'Prescribed Medication', y);
                                 drawPremiumField('Handelsname', 'Trade Name', formData.medTradeName, margin, y);
-                                drawPremiumField('Darreichungsform', 'Dosage Form', translateDosageForm(formData.medDosageForm), margin + 85, y);
+                                drawPremiumField('Darreichungsform', 'Dosage Form', formData.medDosageForm, margin + 85, y);
                                 y += 12;
                                 drawPremiumField('Wirkstoff', 'Active Substance', formData.medSubstance, margin, y);
                                 drawPremiumField('Konzentration', 'Concentration', `${formData.medConcentration} mg`, margin + 85, y);
@@ -3934,16 +2954,6 @@
                                 // QR-Code einfügen
                                 if (btmQrCodeDataURL) {
                                     tryAddImageBtm(btmQrCodeDataURL, qrInnerX + 2, qrInnerY + 2, qrInnerSize - 4, qrInnerSize - 4);
-                                } else {
-                                    // Fallback wenn QR-Code nicht generiert werden konnte
-                                    btmDoc.setFont('helvetica', 'bold');
-                                    btmDoc.setFontSize(5);
-                                    btmDoc.setTextColor(...navy);
-                                    btmDoc.text('QR-Code', qrInnerX + qrInnerSize / 2, qrInnerY + qrInnerSize / 2 - 2, { align: 'center' });
-                                    btmDoc.setFont('helvetica', 'normal');
-                                    btmDoc.setFontSize(4);
-                                    btmDoc.setTextColor(...silver);
-                                    btmDoc.text('Generation pending', qrInnerX + qrInnerSize / 2, qrInnerY + qrInnerSize / 2 + 2, { align: 'center' });
                                 }
                                 
                                 // Footer
@@ -3968,7 +2978,7 @@
                                 drawPremiumFooter(2);
                             } else {
                                 // ========== NON-SCHENGEN PREMIUM DESIGN ==========
-                                // Gleiche Premium-Optik wie Schengen, mit Logo und Reiseziel
+                                // Gleiche Premium-Optik wie Schengen, aber ohne Logo und mit Reiseziel
                                 
                                 const navy = [15, 35, 70];
                                 const gold = [180, 142, 87];
@@ -3999,28 +3009,19 @@
                                 btmDoc.setFillColor(...gold);
                                 btmDoc.rect(0, 6, pageWidth, 1.5, 'F');
                                 
-                                // Logo links oben
-                                if (logo) {
-                                    const logoWidth = 28;
-                                    const logoHeight = 28;
-                                    tryAddImageBtm(logo, margin, 10, logoWidth, logoHeight);
-                                }
-                                
-                                // Praxis-Info (mit Offset für Logo)
-                                const textStartX = logo ? margin + 32 : margin;
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(14);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('PRIVATPRAXIS NEVPAZ', textStartX, 18);
+                                btmDoc.text('PRIVATPRAXIS NEVPAZ', margin, 18);
                                 btmDoc.setFont('helvetica', 'normal');
                                 btmDoc.setFontSize(8);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', textStartX, 23);
+                                btmDoc.text('Neurovaskulär Psychiatrische Ambulanz', margin, 23);
                                 btmDoc.setFontSize(7);
-                                btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', textStartX, 27);
-                                btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', textStartX, 31);
+                                btmDoc.text('Dammtorwall 7a • 20354 Hamburg • Deutschland', margin, 27);
+                                btmDoc.text('Tel: +49 40 238353790 • info@nevpaz.de • www.nevpaz.de', margin, 31);
                                 
-                                // Document Info Box (rechts oben)
+                                // Document Info Box (rechts oben) - OHNE LOGO
                                 const infoBoxX = pageWidth - margin - 40;
                                 btmDoc.setFillColor(...lightBlue);
                                 btmDoc.roundedRect(infoBoxX, 12, 40, 24, 2, 2, 'F');
@@ -4168,75 +3169,63 @@
                                 drawNonSchengenField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Geburtsort', 'Place of Birth', formData.patPob, margin, y);
-                                const sexDisplayNonSchengen = formData.patSex === 'M' ? 'Männlich (Male)' : formData.patSex === 'F' ? 'Weiblich (Female)' : formData.patSex;
-                                drawNonSchengenField('Geschlecht', 'Sex', sexDisplayNonSchengen, margin + 80, y);
+                                drawNonSchengenField('Geschlecht', 'Sex', formData.patGender === 'male' ? 'Männlich (Male)' : formData.patGender === 'female' ? 'Weiblich (Female)' : 'Divers (Diverse)', margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Staatsangehörigkeit', 'Nationality', formData.patNationality, margin, y);
-                                drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 80, y);
+                                drawNonSchengenField('Wohnanschrift', 'Residential Address', formData.patAddress, margin + 55, y);
                                 
-                                // REISEZIEL BOX - Kompaktes einheitliches Design
+                                // REISEZIEL BOX (Neu für Non-Schengen)
                                 y += 14;
                                 btmDoc.setFillColor(...lightBlue);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'F');
                                 btmDoc.setDrawColor(...navy);
                                 btmDoc.setLineWidth(0.5);
                                 btmDoc.roundedRect(margin, y, contentWidth, 16, 1.5, 1.5, 'S');
-                                // Gold-Akzent oben
+                                
                                 btmDoc.setFillColor(...gold);
-                                btmDoc.rect(margin + 3, y + 1, contentWidth - 6, 0.6, 'F');
-                                // Trennlinien für 3 Spalten
+                                btmDoc.rect(margin, y, 4, 16, 'F');
+                                
+                                // Reisedauer links
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(6);
+                                btmDoc.setTextColor(...navy);
+                                btmDoc.text('REISEZIEL / DESTINATION', margin + 8, y + 5.5);
+                                btmDoc.setFont('helvetica', 'bold');
+                                btmDoc.setFontSize(11);
+                                btmDoc.text(formData.destination || 'Not specified', margin + 8, y + 12);
+                                
+                                // Trennlinie
                                 btmDoc.setDrawColor(...gold);
-                                btmDoc.setLineWidth(0.4);
-                                btmDoc.line(margin + 55, y + 3.5, margin + 55, y + 12.5);
-                                btmDoc.line(margin + 115, y + 3.5, margin + 115, y + 12.5);
-                                // Spalte 1: Reiseziel
+                                btmDoc.setLineWidth(0.8);
+                                btmDoc.line(margin + 85, y + 2, margin + 85, y + 14);
+                                
+                                // Reisedauer
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEZIEL', margin + 5, y + 5.5);
+                                btmDoc.text('REISEDAUER', margin + 90, y + 5.5);
                                 btmDoc.setFont('helvetica', 'italic');
                                 btmDoc.setFontSize(5);
                                 btmDoc.setTextColor(...silver);
-                                btmDoc.text('Destination', margin + 5, y + 8.5);
+                                btmDoc.text('Travel Duration', margin + 90, y + 8.5);
                                 btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(9);
+                                btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                const destinationText = formData.destinationCity && formData.destination 
-                                    ? `${formData.destinationCity}, ${formData.destination}`
-                                    : formData.destination || '—';
-                                btmDoc.text(destinationText, margin + 5, y + 13.5);
-                                // Spalte 2: Reisedauer
+                                btmDoc.text(`${formData.travelDuration} Days`, margin + 90, y + 13.5);
+                                
+                                // Gültigkeitszeitraum
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('REISEDAUER', margin + 60, y + 5.5);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Travel Period', margin + 60, y + 8.5);
+                                btmDoc.text('VALIDITY', margin + 130, y + 5.5);
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(9);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate} - ${endDate} (${formData.travelDuration} Tage)`, margin + 60, y + 13.5);
-                                // Spalte 3: Gültigkeit
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(6);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text('GÜLTIGKEIT', margin + 120, y + 5.5);
-                                btmDoc.setFont('helvetica', 'italic');
-                                btmDoc.setFontSize(5);
-                                btmDoc.setTextColor(...silver);
-                                btmDoc.text('Validity', margin + 120, y + 8.5);
-                                btmDoc.setFont('helvetica', 'bold');
-                                btmDoc.setFontSize(9);
-                                btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 120, y + 13.5);
+                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 130, y + 12);
                                 
                                 // SEKTION C - Medikamente
                                 y += 22;
                                 y = drawNonSchengenSection('C', 'Verschriebenes Arzneimittel', 'Prescribed Medication', y);
                                 drawNonSchengenField('Handelsname', 'Trade Name', formData.medTradeName, margin, y);
-                                drawNonSchengenField('Darreichungsform', 'Dosage Form', translateDosageForm(formData.medDosageForm), margin + 85, y);
+                                drawNonSchengenField('Darreichungsform', 'Dosage Form', formData.medDosageForm, margin + 85, y);
                                 y += 12;
                                 drawNonSchengenField('Wirkstoff', 'Active Substance', formData.medSubstance, margin, y);
                                 drawNonSchengenField('Konzentration', 'Concentration', `${formData.medConcentration} mg`, margin + 85, y);
@@ -4339,11 +3328,7 @@
                                 btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                // Stadt, Land Format für Seite 2
-                                const destinationTextP2 = formData.destinationCity && formData.destination 
-                                    ? `${formData.destinationCity}, ${formData.destination}`
-                                    : formData.destination || 'Not specified';
-                                btmDoc.text(`Destination: ${destinationTextP2}`, pageWidth - margin, 17, { align: 'right' });
+                                btmDoc.text(`Destination: ${formData.destination || 'Not specified'}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // Legal Notice
                                 y = 28;
@@ -4571,21 +3556,6 @@
             return (
                 <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 text-slate-700 pb-24">
                     
-                    {/* Vorschau Modal */}
-                    <PreviewModal 
-                        isOpen={showPreviewModal}
-                        onClose={() => {
-                            setShowPreviewModal(false);
-                            if (previewPdfUrl) {
-                                URL.revokeObjectURL(previewPdfUrl);
-                                setPreviewPdfUrl(null);
-                            }
-                        }}
-                        pdfUrl={previewPdfUrl}
-                        onConfirm={confirmPreviewAndPay}
-                        price={`${PRICES.bundle.toFixed(2).replace('.', ',')} €`}
-                    />
-                    
                     {/* Stripe Payment Modal */}
                     <PaymentModal 
                         isOpen={showPaymentModal}
@@ -4650,17 +3620,10 @@
                                             <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
                                                 <Icons.MapPin className="h-10 w-10 text-amber-600" />
                                             </div>
-                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">2. Reiseziel & Daten</h3>
+                                            <h3 className="text-2xl font-bold text-slate-800 text-center mb-4">2. Reisedaten</h3>
                                             <p className="text-slate-600 text-center text-lg leading-relaxed mb-6">
-                                                Geben Sie Ihr <strong className="text-amber-600">Reiseziel</strong> in die Suchzeile ein – Stadt und Land werden automatisch vervollständigt.
+                                                Wählen Sie <strong className="text-amber-600">Reiseziel</strong> (Schengen oder Andere), <strong className="text-amber-600">Reisedatum</strong> und <strong className="text-amber-600">Reisedauer</strong>.
                                             </p>
-                                            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-4">
-                                                <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
-                                                    <Icons.Search className="h-4 w-4 text-slate-500" />
-                                                    <span className="italic">z.B. "Bangkok" oder "New York"</span>
-                                                </div>
-                                                <div className="text-xs text-slate-500">Schengen/Non-Schengen wird automatisch erkannt</div>
-                                            </div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200 text-center">
                                                     <span className="text-2xl">🇪🇺</span>
@@ -4762,7 +3725,7 @@
                                                 <div className="bg-white rounded-lg p-2 border shadow-sm">🔷</div>
                                             </div>
                                             <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200 text-center">
-                                                <p className="text-sm text-emerald-700 font-medium">11,50 € für BTM-Formular + Attest</p>
+                                                <p className="text-sm text-emerald-700 font-medium">29,00 € für BTM-Formular + Attest</p>
                                             </div>
                                         </div>
                                     )}
@@ -5067,30 +4030,12 @@
                                         </div>
                                     </div>
                                 </div>
-                                
-                                {/* Destination Search - für alle Reisearten */}
-                                <div className="mt-4 sm:mt-6 animate-slide-down">
-                                    <DestinationSearch 
-                                        onSelect={(dest) => {
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                destinationCity: dest.city || '',
-                                                destination: dest.country || '',
-                                                // Automatisch den Reisetyp anpassen basierend auf Schengen-Status
-                                                countryType: dest.isSchengen === true ? 'schengen' : dest.isSchengen === false ? 'non-schengen' : prev.countryType
-                                            }));
-                                        }}
-                                        currentDestination={{
-                                            city: formData.destinationCity,
-                                            country: formData.destination,
-                                            formatted: formData.destinationCity && formData.destination 
-                                                ? `${formData.destinationCity}, ${formData.destination}` 
-                                                : formData.destination || '',
-                                            isSchengen: formData.countryType === 'schengen'
-                                        }}
-                                        isSchengen={formData.countryType === 'schengen'}
-                                    />
-                                </div>
+                                {formData.countryType === 'non-schengen' && (
+                                    <div className="mt-4 sm:mt-6 animate-slide-down">
+                                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Zielland</label>
+                                        <input type="text" name="destination" value={formData.destination} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="z.B. USA, Thailand, Japan..." />
+                                    </div>
+                                )}
                                 
                                 {/* Gesundheitsamt-Suche für alle Reisen */}
                                 <div className="mt-6 animate-slide-down">
