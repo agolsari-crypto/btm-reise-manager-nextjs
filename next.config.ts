@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 
+// Security Headers (ohne CSP - verursacht Kompatibilitätsprobleme mit React/Babel)
 const securityHeaders = [
   {
     // Verhindert Clickjacking
@@ -30,23 +31,8 @@ const securityHeaders = [
     // Strict Transport Security (HTTPS erzwingen)
     key: 'Strict-Transport-Security',
     value: 'max-age=31536000; includeSubDomains'
-  },
-  {
-    // Content Security Policy - Weniger restriktiv für Kompatibilität
-    key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
-      "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https: *",
-      "connect-src 'self' https://api.stripe.com https://tools.rki.de https://*.stripe.com",
-      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com",
-      "worker-src 'self' blob:",
-      "object-src 'none'",
-      "base-uri 'self'"
-    ].join('; ')
   }
+  // CSP entfernt - verursacht Probleme mit inline React/Babel
 ];
 
 const nextConfig: NextConfig = {
