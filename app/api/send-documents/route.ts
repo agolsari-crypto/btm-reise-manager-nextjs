@@ -7,42 +7,106 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const PRAXIS_EMAIL = 'info@nevpaz.de';
 const BUCHHALTUNG_EMAIL = 'belege@nevpaz.de';
 
+// Rate Limiting für Email-Versand (strenger als Checkout)
+const emailRateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const EMAIL_RATE_LIMIT = 3; // Max 3 Emails
+const EMAIL_RATE_WINDOW = 5 * 60 * 1000; // 5 Minuten
+
+function isEmailRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = emailRateLimitStore.get(ip);
+
+  if (!record || now > record.resetTime) {
+    emailRateLimitStore.set(ip, { count: 1, resetTime: now + EMAIL_RATE_WINDOW });
+    return false;
+  }
+
+  if (record.count >= EMAIL_RATE_LIMIT) {
+    return true;
+  }
+
+  record.count++;
+  return false;
+}
+
+// Input Sanitization
+function sanitizeString(input: unknown, maxLength = 200): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/<[^>]*>/g, '') // HTML Tags entfernen
+    .replace(/[<>\"'`;(){}]/g, ''); // Gefährliche Zeichen entfernen
+}
+
+function sanitizeEmail(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const email = input.trim().toLowerCase().slice(0, 100);
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) ? email : null;
+}
+
+// PDF Base64 Validierung
+function isValidBase64Pdf(input: unknown): boolean {
+  if (typeof input !== 'string') return false;
+  // Prüfe ob es gültiges Base64 ist und nicht zu groß (max 10MB)
+  if (input.length > 10 * 1024 * 1024) return false;
+  try {
+    // Einfache Base64 Validierung
+    return /^[A-Za-z0-9+/=]+$/.test(input.replace(/\s/g, ''));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate Limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+               request.headers.get('x-real-ip') ||
+               'unknown';
+
+    if (isEmailRateLimited(ip)) {
+      console.warn(`Email rate limit exceeded for IP: ${ip}`);
+      return NextResponse.json(
+        { error: 'Zu viele Email-Anfragen. Bitte warten Sie 5 Minuten.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const {
-      patientEmail,
-      patientName,
-      doctorName,
-      btmPdfBase64,
-      attestPdfBase64,
-      travelStartDate,
-      travelEndDate,
-      destination,
-      // PDF-Passwort für Drucken
-      pdfPassword,
-      // Zahlungsinformationen
-      paymentAmount,
-      paymentMethod,
-      stripeSessionId,
-      isAdminMode
-    } = body;
 
-    if (!patientEmail || !btmPdfBase64 || !attestPdfBase64) {
+    // Input Sanitization
+    const patientEmail = sanitizeEmail(body.patientEmail);
+    const patientName = sanitizeString(body.patientName);
+    const doctorName = sanitizeString(body.doctorName);
+    const travelStartDate = sanitizeString(body.travelStartDate, 20);
+    const travelEndDate = sanitizeString(body.travelEndDate, 20);
+    const destination = sanitizeString(body.destination, 100);
+    const pdfPassword = sanitizeString(body.pdfPassword, 10);
+    const stripeSessionId = sanitizeString(body.stripeSessionId, 100);
+    const isAdminMode = body.isAdminMode === true;
+    const paymentAmount = sanitizeString(body.paymentAmount, 20);
+    const paymentMethod = sanitizeString(body.paymentMethod, 50);
+
+    // Validierung
+    if (!patientEmail) {
       return NextResponse.json(
-        { error: 'Fehlende Daten: Email und PDFs sind erforderlich' }, 
+        { error: 'Ungültige Email-Adresse' },
         { status: 400 }
       );
     }
 
-    // Email-Validierung
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(patientEmail)) {
+    if (!isValidBase64Pdf(body.btmPdfBase64) || !isValidBase64Pdf(body.attestPdfBase64)) {
+      console.warn(`Invalid PDF data from IP: ${ip}`);
       return NextResponse.json(
-        { error: 'Ungültige Email-Adresse' }, 
+        { error: 'Ungültige PDF-Daten' },
         { status: 400 }
       );
     }
+
+    const btmPdfBase64 = body.btmPdfBase64;
+    const attestPdfBase64 = body.attestPdfBase64;
 
     // Datum formatieren
     const formatDate = (dateStr: string) => {
