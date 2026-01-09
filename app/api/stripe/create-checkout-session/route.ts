@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // SICHERHEIT: Preise serverseitig definiert - können nicht vom Client manipuliert werden
 const FIXED_PRICES = {
-  'btm-bundle': 29.00,  // BTM-Formular + Attest
+  'btm-bundle': 11.50,  // BTM-Formular + Attest (korrigiert von 29.00)
 } as const;
 
 // Rate Limiting: Einfacher In-Memory Store
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
             name: 'BTM-Formular & Attest',
             description: `Patient: ${patientName || 'Nicht angegeben'} | Arzt: ${doctorName || 'NEVPAZ'}`,
           },
-          unit_amount: Math.round(fixedAmount * 100), // FIXER PREIS vom Server
+          unit_amount: Math.round(fixedAmount * 100), // FIXER PREIS vom Server: 1150 Cent = 11,50€
         },
         quantity: 1,
       }],
