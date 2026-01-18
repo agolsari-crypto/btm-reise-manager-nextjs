@@ -434,6 +434,16 @@
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>
                 </svg>
             ),
+            Plus: ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14"/><path d="M12 5v14"/>
+                </svg>
+            ),
+            Trash2: ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" className={className || "h-5 w-5"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+            ),
         };
 
         // Konstanten
@@ -1625,6 +1635,22 @@
         function BtmTravelApp() {
             const [formData, setFormData] = useState({
                 selectedDoctorId: '', patName: '', patFirstName: '', patDob: '', patPob: '', patAddress: '', patPassport: '', patNationality: 'Deutsch', patSex: '',
+                // NEU: Array für mehrere Medikamente
+                medications: [
+                    {
+                        id: Date.now(),
+                        tradeName: '',
+                        dosageForm: 'Hartkapseln',
+                        substance: '',
+                        concentration: 0,
+                        dailyCount: 0,
+                        instructions: '',
+                        doseMorning: 0,
+                        doseNoon: 0,
+                        doseEvening: 0
+                    }
+                ],
+                // Legacy single medication fields (for backward compatibility)
                 medTradeName: '', medDosageForm: 'Hartkapseln', medSubstance: '', medConcentration: 0, medDailyCount: 0, medInstructions: '', doseMorning: 0, doseNoon: 0, doseEvening: 0,
                 travelStartDate: '', travelDuration: 0, countryType: 'schengen', destination: '', destinationCity: '', destinationCountry: '',
                 authorityType: 'gesundheitsamt', // 'gesundheitsamt' oder 'aerztekammer'
@@ -1673,9 +1699,9 @@
             const letterheadInputRef = useRef(null);
 
             // Berechnete Werte
-            const totalUnits = formData.medDailyCount * formData.travelDuration;
-            const totalSubstance = totalUnits * formData.medConcentration;
-            const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
+            const totalUnits = activeFormData.medDailyCount * activeFormData.travelDuration;
+            const totalSubstance = totalUnits * activeFormData.medConcentration;
+            const endDate = calculateEndDate(activeFormData.travelStartDate, activeFormData.travelDuration);
             const selectedDoctor = DOCTORS.find(d => d.id === formData.selectedDoctorId);
             const currentDocAssets = selectedDoctor ? doctorAssets[selectedDoctor.id] : null;
             
@@ -1685,19 +1711,36 @@
                 if (!formData.selectedDoctorId) errors.push({ field: 'Arzt', message: 'Bitte wählen Sie einen Arzt aus' });
                 if (!formData.destination?.trim()) errors.push({ field: 'Reiseziel', message: 'Bitte geben Sie ein Reiseziel ein' });
                 if (!formData.healthAuthorityName?.trim()) errors.push({ field: 'Gesundheitsamt', message: 'Bitte suchen Sie Ihr Gesundheitsamt per PLZ' });
-                if (!formData.patFirstName?.trim()) errors.push({ field: 'Vorname', message: 'Bitte geben Sie Ihren Vornamen ein' });
-                if (!formData.patName?.trim()) errors.push({ field: 'Nachname', message: 'Bitte geben Sie Ihren Nachnamen ein' });
+                if (!activeFormData.patFirstName?.trim()) errors.push({ field: 'Vorname', message: 'Bitte geben Sie Ihren Vornamen ein' });
+                if (!activeFormData.patName?.trim()) errors.push({ field: 'Nachname', message: 'Bitte geben Sie Ihren Nachnamen ein' });
                 if (!formData.patDob?.trim()) errors.push({ field: 'Geburtsdatum', message: 'Bitte geben Sie Ihr Geburtsdatum ein' });
                 if (!formData.patPob?.trim()) errors.push({ field: 'Geburtsort', message: 'Bitte geben Sie Ihren Geburtsort ein' });
                 if (!formData.patPassport?.trim()) errors.push({ field: 'Pass-Nr.', message: 'Bitte geben Sie Ihre Pass-Nummer ein' });
                 if (!formData.patAddress?.trim()) errors.push({ field: 'Adresse', message: 'Bitte geben Sie Ihre Wohnanschrift ein' });
                 if (!formData.patSex) errors.push({ field: 'Geschlecht', message: 'Bitte wählen Sie Ihr Geschlecht aus' });
-                if (!formData.medTradeName?.trim()) errors.push({ field: 'Medikament', message: 'Bitte wählen Sie ein Medikament aus' });
-                if (!formData.medSubstance?.trim()) errors.push({ field: 'Wirkstoff', message: 'Bitte geben Sie den Wirkstoff ein' });
-                if (!formData.medConcentration || formData.medConcentration <= 0) errors.push({ field: 'Konzentration', message: 'Bitte geben Sie die Konzentration ein' });
-                if (!formData.travelStartDate) errors.push({ field: 'Reisedatum', message: 'Bitte wählen Sie ein Reisedatum' });
-                if (!formData.travelDuration || formData.travelDuration <= 0) errors.push({ field: 'Reisedauer', message: 'Bitte geben Sie die Reisedauer ein' });
-                if ((formData.doseMorning || 0) + (formData.doseNoon || 0) + (formData.doseEvening || 0) <= 0) errors.push({ field: 'Dosierung', message: 'Bitte geben Sie mindestens eine Dosis ein' });
+                // NEU: Validierung für mehrere Medikamente
+                if (!formData.medications || formData.medications.length === 0) {
+                    errors.push({ field: 'Medikamente', message: 'Bitte fügen Sie mindestens ein Medikament hinzu' });
+                } else {
+                    formData.medications.forEach((med, idx) => {
+                        const medNum = idx + 1;
+                        if (!med.tradeName?.trim()) {
+                            errors.push({ field: `Medikament ${medNum}`, message: `Bitte wählen Sie Medikament ${medNum} aus` });
+                        }
+                        if (!med.substance?.trim()) {
+                            errors.push({ field: `Wirkstoff ${medNum}`, message: `Bitte geben Sie den Wirkstoff für Medikament ${medNum} ein` });
+                        }
+                        if (!med.concentration || med.concentration <= 0) {
+                            errors.push({ field: `Konzentration ${medNum}`, message: `Bitte geben Sie die Konzentration für Medikament ${medNum} ein` });
+                        }
+                        const totalDose = (med.doseMorning || 0) + (med.doseNoon || 0) + (med.doseEvening || 0);
+                        if (totalDose <= 0) {
+                            errors.push({ field: `Dosierung ${medNum}`, message: `Bitte geben Sie die Dosierung für Medikament ${medNum} ein` });
+                        }
+                    });
+                }
+                if (!activeFormData.travelStartDate) errors.push({ field: 'Reisedatum', message: 'Bitte wählen Sie ein Reisedatum' });
+                if (!activeFormData.travelDuration || activeFormData.travelDuration <= 0) errors.push({ field: 'Reisedauer', message: 'Bitte geben Sie die Reisedauer ein' });
                 return errors;
             };
             
@@ -1908,6 +1951,90 @@
                 setFormData(prev => ({ ...prev, medTradeName: selectedName, medSubstance: preset ? preset.substance : prev.medSubstance, medDosageForm: 'Hartkapseln' }));
             };
 
+            // =====================================================
+            // NEU: Handler für mehrere Medikamente
+            // =====================================================
+
+            // Medikament hinzufügen
+            const handleAddMedication = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    medications: [
+                        ...prev.medications,
+                        {
+                            id: Date.now(),
+                            tradeName: '',
+                            dosageForm: 'Hartkapseln',
+                            substance: '',
+                            concentration: 0,
+                            dailyCount: 0,
+                            instructions: '',
+                            doseMorning: 0,
+                            doseNoon: 0,
+                            doseEvening: 0
+                        }
+                    ]
+                }));
+            };
+
+            // Medikament entfernen
+            const handleRemoveMedication = (medicationId) => {
+                if (formData.medications.length > 1) {
+                    setFormData(prev => ({
+                        ...prev,
+                        medications: prev.medications.filter(m => m.id !== medicationId)
+                    }));
+                }
+            };
+
+            // Medikament aktualisieren
+            const handleUpdateMedication = (medicationId, field, value) => {
+                setFormData(prev => {
+                    const updatedMedications = prev.medications.map(m => {
+                        if (m.id !== medicationId) return m;
+
+                        const updated = { ...m, [field]: value };
+
+                        // Auto-Update für dailyCount und instructions bei Dosierungsänderung
+                        if (field === 'doseMorning' || field === 'doseNoon' || field === 'doseEvening') {
+                            const morning = field === 'doseMorning' ? value : m.doseMorning || 0;
+                            const noon = field === 'doseNoon' ? value : m.doseNoon || 0;
+                            const evening = field === 'doseEvening' ? value : m.doseEvening || 0;
+                            updated.dailyCount = morning + noon + evening;
+                            updated.instructions = `${morning}-${noon}-${evening}`;
+                        }
+
+                        return updated;
+                    });
+
+                    // Sync erstes Medikament mit Legacy-Feldern
+                    const firstMed = updatedMedications[0] || {};
+                    return {
+                        ...prev,
+                        medications: updatedMedications,
+                        medTradeName: firstMed.tradeName || '',
+                        medSubstance: firstMed.substance || '',
+                        medConcentration: firstMed.concentration || 0,
+                        medDailyCount: firstMed.dailyCount || 0,
+                        medInstructions: firstMed.instructions || '',
+                        medDosageForm: firstMed.dosageForm || 'Hartkapseln',
+                        doseMorning: firstMed.doseMorning || 0,
+                        doseNoon: firstMed.doseNoon || 0,
+                        doseEvening: firstMed.doseEvening || 0
+                    };
+                });
+            };
+
+            // Berechnungen für alle Medikamente
+            const medicationTotals = (formData.medications || []).map(med => ({
+                ...med,
+                totalUnits: (med.dailyCount || 0) * (activeFormData.travelDuration || 0),
+                totalSubstance: (med.dailyCount || 0) * (activeFormData.travelDuration || 0) * (med.concentration || 0)
+            }));
+
+            const grandTotalUnits = medicationTotals.reduce((sum, med) => sum + (med.totalUnits || 0), 0);
+            const grandTotalSubstance = medicationTotals.reduce((sum, med) => sum + (med.totalSubstance || 0), 0);
+
             const handleLogoUpload = (e) => {
                 const file = e.target.files?.[0];
                 if (file) { const reader = new FileReader(); reader.onloadend = () => setLogo(reader.result); reader.readAsDataURL(file); }
@@ -2097,9 +2224,9 @@
                     const formData = activeFormData;
 
                     // WICHTIG: Neuberechnung mit den korrekten Formulardaten
-                    const totalUnits = (formData.medDailyCount || 0) * (formData.travelDuration || 0);
-                    const totalSubstance = totalUnits * (formData.medConcentration || 0);
-                    const endDate = calculateEndDate(formData.travelStartDate, formData.travelDuration);
+                    const totalUnits = (activeFormData.medDailyCount || 0) * (activeFormData.travelDuration || 0);
+                    const totalSubstance = totalUnits * (activeFormData.medConcentration || 0);
+                    const endDate = calculateEndDate(activeFormData.travelStartDate, activeFormData.travelDuration);
 
                     try {
                         const { jsPDF } = window.jspdf;
@@ -2128,7 +2255,8 @@
                         // Generiere Dokument-ID und Sicherheits-Hash
                         const docId = 'BTM-' + Date.now().toString(36).toUpperCase().slice(-8);
                         const issuedDate = new Date().toISOString().split('T')[0];
-                        const securityHash = btoa(`${docId}:${formData.patName}:${formData.medSubstance}:${issuedDate}`).slice(0, 12);
+                        const firstMed = (activeFormData.medications && activeFormData.medications[0]) || { substance: activeFormData.medSubstance };
+                        const securityHash = btoa(`${docId}:${activeFormData.patName}:${firstMed.substance}:${issuedDate}`).slice(0, 12);
                         
                         // QR-Code Daten - Direkt lesbar beim Scannen (kein Server nötig)
                         const qrData = [
@@ -2138,18 +2266,21 @@
                             `Hash: ${securityHash}`,
                             '',
                             'PATIENT',
-                            `${formData.patName}, ${formData.patFirstName}`,
+                            `${activeFormData.patName}, ${activeFormData.patFirstName}`,
                             `Geb: ${formData.patDob || '-'}`,
                             '',
                             'MEDIKATION',
-                            formData.medTradeName,
-                            `${formData.medSubstance} ${formData.medConcentration}mg`,
-                            `Dosis: ${formData.medInstructions}`,
+                            // Alle Medikamente für QR-Code
+                            ...(activeFormData.medications || []).flatMap((med, idx) => [
+                                `Med${idx + 1}: ${med.tradeName}`,
+                                `${med.substance} ${med.concentration}mg`
+                            ]),
+                            `Dosis: ${activeFormData.medInstructions}`,
                             `Menge: ${totalSubstance}mg`,
                             '',
                             'GUELTIG',
-                            `${formData.travelStartDate} - ${endDate}`,
-                            `${formData.travelDuration} Tage`,
+                            `${activeFormData.travelStartDate} - ${endDate}`,
+                            `${activeFormData.travelDuration} Tage`,
                             '',
                             'ARZT',
                             doctor.name,
@@ -2321,7 +2452,7 @@
                                 doc.setFont('helvetica', 'bold');
                                 doc.setFontSize(10);
                                 doc.setTextColor(...charcoal);
-                                doc.text(`${formData.patName || ''}, ${formData.patFirstName || ''}`, pageWidth - margin, 12, { align: 'right' });
+                                doc.text(`${activeFormData.patName || ''}, ${activeFormData.patFirstName || ''}`, pageWidth - margin, 12, { align: 'right' });
                                 
                                 doc.setFont('helvetica', 'normal');
                                 doc.setFontSize(7);
@@ -2562,8 +2693,8 @@
                             doc.line(margin + 4, y + 14, margin + contentWidth - 4, y + 14);
                             doc.line(margin + 4, y + 26, margin + contentWidth - 4, y + 26);
                             
-                            drawField('Surname', 'Nachname', formData.patName || '—', col1, y + 4);
-                            drawField('First Name', 'Vorname', formData.patFirstName || '—', col2, y + 4);
+                            drawField('Surname', 'Nachname', activeFormData.patName || '—', col1, y + 4);
+                            drawField('First Name', 'Vorname', activeFormData.patFirstName || '—', col2, y + 4);
                             drawField('Date of Birth', 'Geburtsdatum', formData.patDob || '—', col1, y + 17);
                             drawField('Passport / ID', 'Pass/Ausweis-Nr.', formData.patPassport || '—', col2, y + 17);
                             drawField('Nationality', 'Staatsangehörigkeit', formData.patNationality || 'German', col1, y + 29);
@@ -2595,7 +2726,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(13);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth / 4, y + 17, { align: 'center' });
+                            doc.text(`${activeFormData.travelDuration || '—'} Days / Tage`, margin + contentWidth / 4, y + 17, { align: 'center' });
                             
                             // Validity Period
                             const today = new Date().toISOString().split('T')[0];
@@ -2610,7 +2741,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(9);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelStartDate || today} - ${endDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
+                            doc.text(`${activeFormData.travelStartDate || today} - ${endDate}`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
                             
                             y += 24;
                             
@@ -2640,10 +2771,10 @@
                             doc.line(margin + contentWidth / 2, y + 4, margin + contentWidth / 2, y + 24);
                             doc.line(margin + 4, y + 14, margin + contentWidth - 4, y + 14);
                             
-                            drawField('Trade Name', 'Handelsname', formData.medTradeName || '—', col1, y + 4);
-                            drawField('Dosage Form', 'Darreichungsform', formData.medDosageForm || '—', col2, y + 4);
-                            drawField('Active Substance', 'Wirkstoff', formData.medSubstance || '—', col1, y + 17);
-                            drawField('Concentration', 'Konzentration', `${formData.medConcentration || '—'} mg`, col2, y + 17);
+                            drawField('Trade Name', 'Handelsname', activeFormData.medTradeName || '—', col1, y + 4);
+                            drawField('Dosage Form', 'Darreichungsform', activeFormData.medDosageForm || '—', col2, y + 4);
+                            drawField('Active Substance', 'Wirkstoff', activeFormData.medSubstance || '—', col1, y + 17);
+                            drawField('Concentration', 'Konzentration', `${activeFormData.medConcentration || '—'} mg`, col2, y + 17);
                             
                             y += 30;
                             
@@ -2665,7 +2796,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(14);
                             doc.setTextColor(...charcoal);
-                            doc.text(formData.medInstructions || '—', margin + 70, y + 9);
+                            doc.text(activeFormData.medInstructions || '—', margin + 70, y + 9);
                             
                             y += 16;
                             
@@ -2692,7 +2823,10 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(12);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${totalSubstance}mg ${formData.medSubstance || ''}`, margin + contentWidth / 4, y + 17, { align: 'center' });
+                            // Gesamtmenge für alle Medikamente
+                            const allMeds = activeFormData.medications || [{ substance: activeFormData.medSubstance, concentration: activeFormData.medConcentration, dailyCount: activeFormData.medDailyCount }];
+                            const totalMedSubstance = allMeds.reduce((sum, m) => sum + ((m.concentration || 0) * (m.dailyCount || 0) * (activeFormData.travelDuration || 0)), 0);
+                            doc.text(`${totalMedSubstance}mg (alle Medikamente)`, margin + contentWidth / 4, y + 17, { align: 'center' });
                             
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(7);
@@ -2705,7 +2839,7 @@
                             doc.setFont('helvetica', 'bold');
                             doc.setFontSize(13);
                             doc.setTextColor(...charcoal);
-                            doc.text(`${formData.travelDuration || '—'} Days / Tage`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
+                            doc.text(`${activeFormData.travelDuration || '—'} Days / Tage`, margin + contentWidth * 3 / 4, y + 17, { align: 'center' });
                             
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(8);
@@ -2757,7 +2891,7 @@
                             
                             // PDF-Schutz: Bearbeitung verhindern
                             doc.setProperties({
-                                title: `Medical Certificate - ${formData.patName || 'Patient'}`,
+                                title: `Medical Certificate - ${activeFormData.patName || 'Patient'}`,
                                 subject: 'Medical Certificate for International Travel',
                                 author: 'Privatpraxis NEVPAZ GmbH',
                                 creator: 'NEVPAZ BTM-Reise-Manager',
@@ -2783,7 +2917,8 @@
                             // Generiere neuen QR-Code für BTM-Dokument
                             const btmDocId = 'BTM-' + Date.now().toString(36).toUpperCase().slice(-8);
                             const btmIssuedDate = new Date().toISOString().split('T')[0];
-                            const btmSecurityHash = btoa(`${btmDocId}:${formData.patName}:${formData.medSubstance}:${btmIssuedDate}`).slice(0, 12);
+                            const btmFirstMed = (activeFormData.medications && activeFormData.medications[0]) || { substance: activeFormData.medSubstance };
+                            const btmSecurityHash = btoa(`${btmDocId}:${activeFormData.patName}:${btmFirstMed.substance}:${btmIssuedDate}`).slice(0, 12);
                             
                             const btmQrData = [
                                 'NEVPAZ BTM-BESCHEINIGUNG',
@@ -2792,18 +2927,18 @@
                                 `Hash: ${btmSecurityHash}`,
                                 '',
                                 'PATIENT',
-                                `${formData.patName}, ${formData.patFirstName}`,
+                                `${activeFormData.patName}, ${activeFormData.patFirstName}`,
                                 `Geb: ${formData.patDob || '-'}`,
                                 '',
                                 'MEDIKATION',
-                                formData.medTradeName,
-                                `${formData.medSubstance} ${formData.medConcentration}mg`,
-                                `Dosis: ${formData.medInstructions}`,
+                                activeFormData.medTradeName,
+                                `${activeFormData.medSubstance} ${activeFormData.medConcentration}mg`,
+                                `Dosis: ${activeFormData.medInstructions}`,
                                 `Menge: ${totalSubstance}mg`,
                                 '',
                                 'GUELTIG',
-                                `${formData.travelStartDate} - ${endDate}`,
-                                `${formData.travelDuration} Tage`,
+                                `${activeFormData.travelStartDate} - ${endDate}`,
+                                `${activeFormData.travelDuration} Tage`,
                                 '',
                                 'ARZT',
                                 doctor.name,
@@ -3097,8 +3232,8 @@
                                 // SEKTION B - Patient (kompakter)
                                 y += 14;
                                 y = drawPremiumSection('B', 'Patient', 'Patient Details', y);
-                                drawPremiumField('Nachname', 'Surname', formData.patName, margin, y);
-                                drawPremiumField('Vorname', 'First Name', formData.patFirstName, margin + 80, y);
+                                drawPremiumField('Nachname', 'Surname', activeFormData.patName, margin, y);
+                                drawPremiumField('Vorname', 'First Name', activeFormData.patFirstName, margin + 80, y);
                                 y += 12;
                                 drawPremiumField('Pass/Ausweis-Nr.', 'ID Number', formData.patPassport, margin, y);
                                 drawPremiumField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
@@ -3155,7 +3290,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Tage`, margin + 65, y + 13.5);
+                                btmDoc.text(`${activeFormData.travelDuration} Tage`, margin + 65, y + 13.5);
 
                                 // Spalte 3: Gültigkeitszeitraum
                                 btmDoc.setFont('helvetica', 'bold');
@@ -3169,18 +3304,18 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(9);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 105, y + 13.5);
+                                btmDoc.text(`${activeFormData.travelStartDate} - ${endDate}`, margin + 105, y + 13.5);
                                 
                                 // SEKTION C - Medikamente (mehr Abstand)
                                 y += 22;
                                 y = drawPremiumSection('C', 'Verschriebenes Arzneimittel', 'Prescribed Medication', y);
-                                drawPremiumField('Handelsname', 'Trade Name', formData.medTradeName, margin, y);
-                                drawPremiumField('Darreichungsform', 'Dosage Form', formData.medDosageForm, margin + 85, y);
+                                drawPremiumField('Handelsname', 'Trade Name', activeFormData.medTradeName, margin, y);
+                                drawPremiumField('Darreichungsform', 'Dosage Form', activeFormData.medDosageForm, margin + 85, y);
                                 y += 12;
-                                drawPremiumField('Wirkstoff', 'Active Substance', formData.medSubstance, margin, y);
-                                drawPremiumField('Konzentration', 'Concentration', `${formData.medConcentration} mg`, margin + 85, y);
+                                drawPremiumField('Wirkstoff', 'Active Substance', activeFormData.medSubstance, margin, y);
+                                drawPremiumField('Konzentration', 'Concentration', `${activeFormData.medConcentration} mg`, margin + 85, y);
                                 y += 12;
-                                drawPremiumField('Gebrauchsanweisung', 'Dosage Instructions', formData.medInstructions, margin, y);
+                                drawPremiumField('Gebrauchsanweisung', 'Dosage Instructions', activeFormData.medInstructions, margin, y);
                                 
                                 // Gesamtmenge Box - Dezentes Design
                                 y += 14;
@@ -3210,7 +3345,9 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${totalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
+                                const premiumTotalMeds = activeFormData.medications || [{ substance: activeFormData.medSubstance, concentration: activeFormData.medConcentration, dailyCount: activeFormData.medDailyCount }];
+                                const premiumTotalSubstance = premiumTotalMeds.reduce((sum, m) => sum + ((m.concentration || 0) * (m.dailyCount || 0) * (activeFormData.travelDuration || 0)), 0);
+                                btmDoc.text(`${premiumTotalSubstance} mg (Gesamt)`, margin + 8, y + 13.5);
                                 // Reichdauer
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(6);
@@ -3223,7 +3360,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Tage / Days`, margin + 105, y + 13.5);
+                                btmDoc.text(`${activeFormData.travelDuration} Tage / Days`, margin + 105, y + 13.5);
                                 
                                 // Fußzeile Seite 1
                                 drawPremiumFooter(1);
@@ -3248,10 +3385,10 @@
                                 btmDoc.setFont('helvetica', 'normal');
                                 btmDoc.setFontSize(8);
                                 btmDoc.setTextColor(...charcoal);
-                                btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
+                                btmDoc.text(`${activeFormData.patName}, ${activeFormData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
-                                btmDoc.text(`Valid: ${formData.travelStartDate} - ${endDate}`, pageWidth - margin, 17, { align: 'right' });
+                                btmDoc.text(`Valid: ${activeFormData.travelStartDate} - ${endDate}`, pageWidth - margin, 17, { align: 'right' });
                                 
                                 // SEKTION D - Behörde
                                 y = 28;
@@ -3651,8 +3788,8 @@
                                 // SEKTION B - Patient
                                 y += 14;
                                 y = drawNonSchengenSection('B', 'Patient', 'Patient Details', y);
-                                drawNonSchengenField('Nachname', 'Surname', formData.patName, margin, y);
-                                drawNonSchengenField('Vorname', 'First Name', formData.patFirstName, margin + 80, y);
+                                drawNonSchengenField('Nachname', 'Surname', activeFormData.patName, margin, y);
+                                drawNonSchengenField('Vorname', 'First Name', activeFormData.patFirstName, margin + 80, y);
                                 y += 12;
                                 drawNonSchengenField('Pass/Ausweis-Nr.', 'ID Number', formData.patPassport, margin, y);
                                 drawNonSchengenField('Geburtsdatum', 'Date of Birth', formData.patDob, margin + 80, y);
@@ -3702,7 +3839,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(10);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Days`, margin + 90, y + 13.5);
+                                btmDoc.text(`${activeFormData.travelDuration} Days`, margin + 90, y + 13.5);
                                 
                                 // Gültigkeitszeitraum
                                 btmDoc.setFont('helvetica', 'bold');
@@ -3710,18 +3847,18 @@
                                 btmDoc.text('VALIDITY', margin + 130, y + 5.5);
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(9);
-                                btmDoc.text(`${formData.travelStartDate} - ${endDate}`, margin + 130, y + 12);
+                                btmDoc.text(`${activeFormData.travelStartDate} - ${endDate}`, margin + 130, y + 12);
                                 
                                 // SEKTION C - Medikamente
                                 y += 22;
                                 y = drawNonSchengenSection('C', 'Verschriebenes Arzneimittel', 'Prescribed Medication', y);
-                                drawNonSchengenField('Handelsname', 'Trade Name', formData.medTradeName, margin, y);
-                                drawNonSchengenField('Darreichungsform', 'Dosage Form', formData.medDosageForm, margin + 85, y);
+                                drawNonSchengenField('Handelsname', 'Trade Name', activeFormData.medTradeName, margin, y);
+                                drawNonSchengenField('Darreichungsform', 'Dosage Form', activeFormData.medDosageForm, margin + 85, y);
                                 y += 12;
-                                drawNonSchengenField('Wirkstoff', 'Active Substance', formData.medSubstance, margin, y);
-                                drawNonSchengenField('Konzentration', 'Concentration', `${formData.medConcentration} mg`, margin + 85, y);
+                                drawNonSchengenField('Wirkstoff', 'Active Substance', activeFormData.medSubstance, margin, y);
+                                drawNonSchengenField('Konzentration', 'Concentration', `${activeFormData.medConcentration} mg`, margin + 85, y);
                                 y += 12;
-                                drawNonSchengenField('Gebrauchsanweisung', 'Dosage Instructions', formData.medInstructions, margin, y);
+                                drawNonSchengenField('Gebrauchsanweisung', 'Dosage Instructions', activeFormData.medInstructions, margin, y);
                                 
                                 // Gesamtmenge Box
                                 y += 14;
@@ -3745,7 +3882,9 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(11);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${totalSubstance} mg ${formData.medSubstance}`, margin + 8, y + 13.5);
+                                const premiumTotalMeds = activeFormData.medications || [{ substance: activeFormData.medSubstance, concentration: activeFormData.medConcentration, dailyCount: activeFormData.medDailyCount }];
+                                const premiumTotalSubstance = premiumTotalMeds.reduce((sum, m) => sum + ((m.concentration || 0) * (m.dailyCount || 0) * (activeFormData.travelDuration || 0)), 0);
+                                btmDoc.text(`${premiumTotalSubstance} mg (Gesamt)`, margin + 8, y + 13.5);
                                 
                                 // Trennlinie
                                 btmDoc.setDrawColor(...gold);
@@ -3764,7 +3903,7 @@
                                 btmDoc.setFont('helvetica', 'bold');
                                 btmDoc.setFontSize(11);
                                 btmDoc.setTextColor(...navy);
-                                btmDoc.text(`${formData.travelDuration} Days`, margin + contentWidth / 2 + 5, y + 13.5);
+                                btmDoc.text(`${activeFormData.travelDuration} Days`, margin + contentWidth / 2 + 5, y + 13.5);
                                 
                                 // Fortsetzung Hinweis
                                 y += 22;
@@ -3816,7 +3955,7 @@
                                 btmDoc.setFont('helvetica', 'normal');
                                 btmDoc.setFontSize(8);
                                 btmDoc.setTextColor(...charcoal);
-                                btmDoc.text(`${formData.patName}, ${formData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
+                                btmDoc.text(`${activeFormData.patName}, ${activeFormData.patFirstName}`, pageWidth - margin, 12, { align: 'right' });
                                 btmDoc.setFontSize(7);
                                 btmDoc.setTextColor(...textGray);
                                 btmDoc.text(`Destination: ${formData.destination || 'Not specified'}`, pageWidth - margin, 17, { align: 'right' });
@@ -3965,7 +4104,7 @@
                             
                             // BTM-Formular Properties setzen
                             btmDoc.setProperties({
-                                title: `BTM-Bescheinigung - ${formData.patName || 'Patient'}`,
+                                title: `BTM-Bescheinigung - ${activeFormData.patName || 'Patient'}`,
                                 subject: 'Schengen-Bescheinigung für das Mitführen von Betäubungsmitteln',
                                 author: 'Privatpraxis NEVPAZ GmbH',
                                 creator: 'NEVPAZ BTM-Reise-Manager',
@@ -3988,11 +4127,11 @@
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
                                             patientEmail: patientEmail,
-                                            patientName: `${formData.patFirstName} ${formData.patName}`.trim(),
+                                            patientName: `${activeFormData.patFirstName} ${activeFormData.patName}`.trim(),
                                             doctorName: doctor.name,
                                             btmPdfBase64: btmPdfBase64,
                                             attestPdfBase64: attestPdfBase64,
-                                            travelStartDate: formData.travelStartDate,
+                                            travelStartDate: activeFormData.travelStartDate,
                                             travelEndDate: endDate,
                                             destination: formData.destination,
                                             // PDF-Passwort für Drucken (wird in Email angezeigt)
@@ -4015,22 +4154,22 @@
                                     } else {
                                         console.error('❌ Email-Fehler:', emailResult.error);
                                         // Fallback: PDFs trotzdem herunterladen
-                                        doc.save(`Attest_English_${formData.patName || 'Patient'}.pdf`);
-                                        btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${formData.patName || 'Patient'}.pdf`);
+                                        doc.save(`Attest_English_${activeFormData.patName || 'Patient'}.pdf`);
+                                        btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${activeFormData.patName || 'Patient'}.pdf`);
                                         alert(`Email konnte nicht gesendet werden. Die PDFs wurden stattdessen heruntergeladen.`);
                                     }
                                 } catch (emailErr) {
                                     console.error('Email-Versand fehlgeschlagen:', emailErr);
                                     // Fallback: PDFs herunterladen
-                                    doc.save(`Attest_English_${formData.patName || 'Patient'}.pdf`);
-                                    btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${formData.patName || 'Patient'}.pdf`);
+                                    doc.save(`Attest_English_${activeFormData.patName || 'Patient'}.pdf`);
+                                    btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${activeFormData.patName || 'Patient'}.pdf`);
                                     alert(`Email konnte nicht gesendet werden. Die PDFs wurden stattdessen heruntergeladen.`);
                                 }
                             } else {
                                 // Keine Email vorhanden - direkt herunterladen
                                 console.log('📥 Keine Email - PDFs werden heruntergeladen');
-                                doc.save(`Attest_English_${formData.patName || 'Patient'}.pdf`);
-                                btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${formData.patName || 'Patient'}.pdf`);
+                                doc.save(`Attest_English_${activeFormData.patName || 'Patient'}.pdf`);
+                                btmDoc.save(`BTM_${formData.countryType === 'schengen' ? 'Schengen' : 'Reise'}_${activeFormData.patName || 'Patient'}.pdf`);
                             }
                         }
                         
@@ -4056,7 +4195,7 @@
                         product={pendingProduct}
                         price={pendingProduct ? PRICES[pendingProduct] : 0}
                         onPaymentSuccess={handlePaymentSuccess}
-                        patientName={`${formData.patFirstName} ${formData.patName}`.trim()}
+                        patientName={`${activeFormData.patFirstName} ${activeFormData.patName}`.trim()}
                         doctorName={selectedDoctor?.name}
                         patientEmail={currentUser?.email}
                         formData={formData}
@@ -4587,8 +4726,8 @@
                                     Patientendaten
                                 </h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 form-grid-mobile">
-                                    <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Vorname</label><input type="text" name="patFirstName" value={formData.patFirstName} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="Max" /></div>
-                                    <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Nachname</label><input type="text" name="patName" value={formData.patName} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="Mustermann" /></div>
+                                    <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Vorname</label><input type="text" name="patFirstName" value={activeFormData.patFirstName} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="Max" /></div>
+                                    <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Nachname</label><input type="text" name="patName" value={activeFormData.patName} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="Mustermann" /></div>
                                     <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Geburtsdatum</label><input type="text" name="patDob" value={formData.patDob} onChange={(e) => { const val = e.target.value.replace(/[^\d.]/g, ''); if (val.length <= 10) { let formatted = val; if (val.length === 2 && !val.includes('.') && formData.patDob.length < val.length) formatted = val + '.'; if (val.length === 5 && val.split('.').length === 2 && formData.patDob.length < val.length) formatted = val + '.'; setFormData(prev => ({ ...prev, patDob: formatted })); } }} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="TT.MM.JJJJ" maxLength="10" /></div>
                                     <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Geburtsort</label><input type="text" name="patPob" value={formData.patPob} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="Hamburg" /></div>
                                     <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Pass-Nr.</label><input type="text" name="patPassport" value={formData.patPassport} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700 placeholder-slate-400" placeholder="C01X00T47" /></div>
@@ -4665,60 +4804,311 @@
                                     </div>
                                 )}
 
-                                <div className="space-y-4 sm:space-y-6">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                        <div>
-                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Handelsname</label>
-                                            <div className="relative">
-                                                <select name="medTradeName" value={formData.medTradeName} onChange={handleMedicationSelect} className="w-full px-4 py-3.5 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none appearance-none cursor-pointer pr-10 bg-white text-slate-700">
-                                                    <option value="">-- Medikament wählen --</option>
-                                                    {MEDICATION_PRESETS.map(med => <option key={med.name} value={med.name}>{med.name}</option>)}
-                                                    <option value="Andere">Andere...</option>
-                                                </select>
-                                                <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500 pointer-events-none" />
-                                            </div>
-                                            {(formData.medTradeName === 'Andere' || (!MEDICATION_PRESETS.find(m => m.name === formData.medTradeName) && formData.medTradeName !== '')) && (
-                                                <input type="text" name="medTradeName" value={formData.medTradeName === 'Andere' ? '' : formData.medTradeName} onChange={handleChange} className="w-full px-4 py-3.5 mt-3 rounded-xl border-2 border-emerald-200 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 placeholder-slate-400" placeholder="Medikamentenname eingeben..." />
-                                            )}
+                                {/* =====================================================
+                                   NEU: MULTI-MEDIKAMENT SEKTION
+                                   ===================================================== */}
+                                <div className="space-y-4">
+                                    {/* Header mit Medikamente hinzufügen Button */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                                                Medikamente ({formData.medications?.length || 0})
+                                            </span>
                                         </div>
-                                        <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Wirkstoff</label><input type="text" name="medSubstance" value={formData.medSubstance} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 placeholder-slate-400" placeholder="Wird automatisch ausgefüllt..." /></div>
-                                        <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Darreichungsform</label><input type="text" name="medDosageForm" value={formData.medDosageForm} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700" /></div>
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">Dosierung (Morgens-Mittags-Abends)</label>
-                                                <button type="button" onClick={() => alert('Dosierungs-Schema:\n\nFormat: Morgens - Mittags - Abends\n\nBeispiele:\n• 1-0-0 = 1x morgens\n• 1-0-1 = 1x morgens, 1x abends\n• 1-1-1 = 3x täglich\n• 2-0-0 = 2x morgens\n• 0-0-1 = 1x abends\n\nDie Tagesdosis wird automatisch berechnet.')} className="text-emerald-600 hover:text-emerald-700 p-1 rounded-lg hover:bg-emerald-50 transition-colors">
-                                                    <Icons.HelpCircle className="h-4 w-4" />
-                                                </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleAddMedication}
+                                            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
+                                        >
+                                            <Icons.Plus className="h-4 w-4" />
+                                            Medikament hinzufügen
+                                        </button>
+                                    </div>
+
+                                    {/* Medikamenten-Liste */}
+                                    <div className="space-y-4">
+                                        {(formData.medications || []).map((med, index) => (
+                                            <div key={med.id} className="bg-white border-2 border-emerald-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                                {/* Medikament Header */}
+                                                <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-bold text-sm">
+                                                            {index + 1}
+                                                        </div>
+                                                        <span className="font-semibold text-slate-700">
+                                                            {med.tradeName || 'Neues Medikament'}
+                                                        </span>
+                                                        {med.substance && (
+                                                            <span className="text-xs text-slate-500 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                                                                {med.substance}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {formData.medications.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveMedication(med.id)}
+                                                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Medikament entfernen"
+                                                        >
+                                                            <Icons.Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+
+                                                {/* Medikament Felder */}
+                                                <div className="p-4 space-y-4">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        {/* Handelsname */}
+                                                        <div>
+                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                                                Handelsname
+                                                            </label>
+                                                            <div className="relative">
+                                                                <select
+                                                                    value={med.tradeName}
+                                                                    onChange={(e) => {
+                                                                        const selectedName = e.target.value;
+                                                                        const preset = MEDICATION_PRESETS.find(m => m.name === selectedName);
+                                                                        handleUpdateMedication(med.id, 'tradeName', selectedName);
+                                                                        if (preset) {
+                                                                            handleUpdateMedication(med.id, 'substance', preset.substance);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none appearance-none cursor-pointer pr-10 bg-white text-slate-700"
+                                                                >
+                                                                    <option value="">-- Medikament wählen --</option>
+                                                                    {MEDICATION_PRESETS.map(preset => (
+                                                                        <option key={preset.name} value={preset.name}>{preset.name}</option>
+                                                                    ))}
+                                                                    <option value="Andere">Andere...</option>
+                                                                </select>
+                                                                <Icons.ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500 pointer-events-none" />
+                                                            </div>
+                                                            {med.tradeName === 'Andere' && (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Medikamentenname eingeben..."
+                                                                    onChange={(e) => handleUpdateMedication(med.id, 'tradeName', e.target.value)}
+                                                                    className="w-full px-4 py-3 mt-2 rounded-xl border-2 border-emerald-200 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 placeholder-slate-400"
+                                                                />
+                                                            )}
+                                                        </div>
+
+                                                        {/* Wirkstoff */}
+                                                        <div>
+                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                                                Wirkstoff
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={med.substance || ''}
+                                                                onChange={(e) => handleUpdateMedication(med.id, 'substance', e.target.value)}
+                                                                placeholder="Wird automatisch ausgefüllt..."
+                                                                className="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 placeholder-slate-400"
+                                                            />
+                                                        </div>
+
+                                                        {/* Darreichungsform */}
+                                                        <div>
+                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                                                Darreichungsform
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={med.dosageForm || 'Hartkapseln'}
+                                                                onChange={(e) => handleUpdateMedication(med.id, 'dosageForm', e.target.value)}
+                                                                className="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700"
+                                                            />
+                                                        </div>
+
+                                                        {/* Konzentration */}
+                                                        <div>
+                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                                                Wirkstoff (mg)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={med.concentration || ''}
+                                                                onChange={(e) => handleUpdateMedication(med.id, 'concentration', parseFloat(e.target.value) || 0)}
+                                                                placeholder="30"
+                                                                className="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Dosierung */}
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                                                Dosierung (Morgens-Mittags-Abends)
+                                                            </label>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => alert('Dosierungs-Schema:\n\nFormat: Morgens - Mittags - Abends\n\nBeispiele:\n• 1-0-0 = 1x morgens\n• 1-0-1 = 1x morgens, 1x abends\n• 1-1-1 = 3x täglich')}
+                                                                className="text-emerald-600 hover:text-emerald-700 p-1 rounded-lg hover:bg-emerald-50 transition-colors"
+                                                            >
+                                                                <Icons.HelpCircle className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex gap-2 items-center">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="9"
+                                                                value={med.doseMorning || ''}
+                                                                onChange={(e) => handleUpdateMedication(med.id, 'doseMorning', Math.min(9, Math.max(0, parseInt(e.target.value) || 0)))}
+                                                                className="w-16 px-3 py-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 text-center text-lg font-bold"
+                                                                placeholder="0"
+                                                            />
+                                                            <span className="text-slate-400 font-bold">-</span>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="9"
+                                                                value={med.doseNoon || ''}
+                                                                onChange={(e) => handleUpdateMedication(med.id, 'doseNoon', Math.min(9, Math.max(0, parseInt(e.target.value) || 0)))}
+                                                                className="w-16 px-3 py-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 text-center text-lg font-bold"
+                                                                placeholder="0"
+                                                            />
+                                                            <span className="text-slate-400 font-bold">-</span>
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="9"
+                                                                value={med.doseEvening || ''}
+                                                                onChange={(e) => handleUpdateMedication(med.id, 'doseEvening', Math.min(9, Math.max(0, parseInt(e.target.value) || 0)))}
+                                                                className="w-16 px-3 py-3 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 text-center text-lg font-bold"
+                                                                placeholder="0"
+                                                            />
+                                                            <span className="text-xs text-slate-500 ml-2">
+                                                                = <span className="font-bold text-emerald-600">
+                                                                    {(med.doseMorning || 0) + (med.doseNoon || 0) + (med.doseEvening || 0)}
+                                                                </span>/Tag
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Mini-Bedarfsanzeige pro Medikament */}
+                                                    {activeFormData.travelDuration > 0 && (
+                                                        <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                                                            <div className="flex items-center justify-between text-sm">
+                                                                <span className="text-slate-600">Bedarf für {activeFormData.travelDuration} Tage:</span>
+                                                                <span className="font-bold text-emerald-700">
+                                                                    {((med.doseMorning || 0) + (med.doseNoon || 0) + (med.doseEvening || 0)) * activeFormData.travelDuration} Stück
+                                                                    {med.concentration > 0 && (
+                                                                        <span className="text-slate-500 font-normal ml-2">
+                                                                            ({((med.doseMorning || 0) + (med.doseNoon || 0) + (med.doseEvening || 0)) * activeFormData.travelDuration * med.concentration} mg)
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="flex gap-2 items-center">
-                                                <input type="number" min="0" max="9" value={formData.doseMorning || ''} onChange={(e) => { const val = Math.min(9, Math.max(0, parseInt(e.target.value) || 0)); setFormData(prev => ({ ...prev, doseMorning: val, medInstructions: `${val}-${prev.doseNoon || 0}-${prev.doseEvening || 0}`, medDailyCount: val + (prev.doseNoon || 0) + (prev.doseEvening || 0) })); }} className="w-16 px-3 py-3.5 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 text-center text-lg font-bold" placeholder="0" />
-                                                <span className="text-slate-400 font-bold">-</span>
-                                                <input type="number" min="0" max="9" value={formData.doseNoon || ''} onChange={(e) => { const val = Math.min(9, Math.max(0, parseInt(e.target.value) || 0)); setFormData(prev => ({ ...prev, doseNoon: val, medInstructions: `${prev.doseMorning || 0}-${val}-${prev.doseEvening || 0}`, medDailyCount: (prev.doseMorning || 0) + val + (prev.doseEvening || 0) })); }} className="w-16 px-3 py-3.5 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 text-center text-lg font-bold" placeholder="0" />
-                                                <span className="text-slate-400 font-bold">-</span>
-                                                <input type="number" min="0" max="9" value={formData.doseEvening || ''} onChange={(e) => { const val = Math.min(9, Math.max(0, parseInt(e.target.value) || 0)); setFormData(prev => ({ ...prev, doseEvening: val, medInstructions: `${prev.doseMorning || 0}-${prev.doseNoon || 0}-${val}`, medDailyCount: (prev.doseMorning || 0) + (prev.doseNoon || 0) + val })); }} className="w-16 px-3 py-3.5 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700 text-center text-lg font-bold" placeholder="0" />
-                                                <span className="text-xs text-slate-500 ml-2">= <span className="font-bold text-emerald-600">{(formData.doseMorning || 0) + (formData.doseNoon || 0) + (formData.doseEvening || 0)}</span>/Tag</span>
-                                            </div>
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {/* Bedarfsrechner */}
+                                {/* Gesamtbedarfsrechner */}
                                 <div className="mt-6 sm:mt-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-200 overflow-hidden">
                                     <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-emerald-200/60 flex items-center justify-between bg-white/50">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-2"><Icons.Calculator className="h-4 w-4" />Bedarfsrechner</span>
-                                        <div className="px-2 py-0.5 bg-emerald-100 border border-emerald-200 rounded text-[10px] font-bold text-emerald-700">AUTO</div>
+                                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-2">
+                                            <Icons.Calculator className="h-4 w-4" />
+                                            Gesamtbedarfsrechner
+                                        </span>
+                                        <div className="px-2 py-0.5 bg-emerald-100 border border-emerald-200 rounded text-[10px] font-bold text-emerald-700">
+                                            {formData.medications?.length || 0} Medikament{(formData.medications?.length || 0) !== 1 ? 'e' : ''}
+                                        </div>
                                     </div>
                                     <div className="p-4 sm:p-8">
-                                        <div className="grid grid-cols-3 gap-3 sm:gap-8 mb-6 sm:mb-8">
-                                            <div className="text-center"><label className="block text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase mb-2 sm:mb-3">Wirkstoff (mg)</label><input type="number" name="medConcentration" value={formData.medConcentration || ''} onChange={handleNumberChange} className="w-full py-2.5 sm:py-3 bg-white border-2 border-emerald-200 rounded-xl text-center text-xl sm:text-2xl font-bold text-slate-700 focus:border-emerald-400 outline-none transition-colors" placeholder="30" /></div>
-                                            <div className="text-center border-l border-emerald-200/60 pl-3 sm:pl-8"><label className="block text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase mb-2 sm:mb-3">Stück/Tag</label><input type="number" name="medDailyCount" value={formData.medDailyCount || ''} onChange={handleNumberChange} className="w-full py-2.5 sm:py-3 bg-white border-2 border-emerald-200 rounded-xl text-center text-xl sm:text-2xl font-bold text-slate-700 focus:border-emerald-400 outline-none transition-colors" placeholder="1" /></div>
-                                            <div className="text-center border-l border-emerald-200/60 pl-3 sm:pl-8"><label className="block text-[9px] sm:text-[10px] font-bold text-slate-500 uppercase mb-2 sm:mb-3">Tage</label><input type="number" name="travelDuration" value={formData.travelDuration || ''} onChange={handleNumberChange} className="w-full py-2.5 sm:py-3 bg-white border-2 border-emerald-200 rounded-xl text-center text-xl sm:text-2xl font-bold text-slate-700 focus:border-emerald-400 outline-none transition-colors" placeholder="14" /></div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
+                                            {/* Reisebeginn */}
+                                            <div>
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                                    Reisebeginn
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    name="travelStartDate"
+                                                    value={activeFormData.travelStartDate}
+                                                    onChange={handleChange}
+                                                    className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700"
+                                                />
+                                                {endDate && (
+                                                    <div className="text-xs text-slate-500 mt-2">
+                                                        Rückkehr: <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">{endDate}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {/* Reisedauer */}
+                                            <div>
+                                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                                                    Reisedauer (Tage)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    name="travelDuration"
+                                                    value={activeFormData.travelDuration || ''}
+                                                    onChange={handleNumberChange}
+                                                    placeholder="14"
+                                                    className="w-full px-4 py-3.5 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 outline-none text-slate-700"
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="pt-6 sm:pt-8 border-t border-emerald-200/60 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 items-center">
-                                            <div><label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Reisebeginn</label><input type="date" name="travelStartDate" value={formData.travelStartDate} onChange={handleChange} className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 hover:border-slate-300 focus:border-sky-400 focus:ring-4 focus:ring-sky-100 outline-none text-slate-700" />{endDate && <div className="text-xs text-slate-500 mt-2">Rückkehr: <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">{endDate}</span></div>}</div>
-                                            <div className="text-center bg-white rounded-xl border border-emerald-200 p-4 sm:p-5 shadow-sm"><div className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Gesamtmenge</div><div className="text-2xl sm:text-3xl font-extrabold text-slate-800">{totalUnits}</div><div className="text-xs text-slate-400">Stück</div></div>
-                                            <div className="text-center bg-white rounded-xl border border-emerald-200 p-4 sm:p-5 shadow-sm"><div className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Wirkstoff gesamt</div><div className="text-2xl sm:text-3xl font-extrabold text-slate-800">{totalSubstance}</div><div className="text-xs text-slate-400">mg</div></div>
-                                        </div>
+
+                                        {/* Medikamenten-Übersicht */}
+                                        {activeFormData.travelDuration > 0 && formData.medications?.length > 0 && (
+                                            <div className="pt-6 border-t border-emerald-200/60">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">
+                                                    Übersicht aller Medikamente
+                                                </h4>
+                                                <div className="space-y-2 mb-4">
+                                                    {medicationTotals.map((med, idx) => (
+                                                        <div key={med.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-emerald-100">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-6 h-6 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+                                                                    {idx + 1}
+                                                                </div>
+                                                                <span className="text-sm font-medium text-slate-700">
+                                                                    {med.tradeName || 'Medikament ' + (idx + 1)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-sm text-right">
+                                                                <span className="font-bold text-slate-800">{med.totalUnits}</span>
+                                                                <span className="text-slate-500 ml-1">Stück</span>
+                                                                {med.totalSubstance > 0 && (
+                                                                    <span className="text-slate-400 ml-2">({med.totalSubstance} mg)</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Gesamt-Summen */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="text-center bg-white rounded-xl border border-emerald-200 p-4 shadow-sm">
+                                                        <div className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">
+                                                            Gesamtmenge
+                                                        </div>
+                                                        <div className="text-2xl sm:text-3xl font-extrabold text-slate-800">
+                                                            {grandTotalUnits}
+                                                        </div>
+                                                        <div className="text-xs text-slate-400">Stück</div>
+                                                    </div>
+                                                    <div className="text-center bg-white rounded-xl border border-emerald-200 p-4 shadow-sm">
+                                                        <div className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">
+                                                            Wirkstoff gesamt
+                                                        </div>
+                                                        <div className="text-2xl sm:text-3xl font-extrabold text-slate-800">
+                                                            {grandTotalSubstance}
+                                                        </div>
+                                                        <div className="text-xs text-slate-400">mg</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </section>
